@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div>
+    <p class="eyebrow">Resumen operativo</p>
+    <h2>Panel principal</h2>
+    <p class="muted">Vista consolidada segun el alcance del rol autenticado.</p>
+  </div>
+</section>
+
+<section class="cards">
+  <article class="card"><span>Instituciones</span><strong>{{ metrics.schools }}</strong></article>
+  <article class="card"><span>Alumnos</span><strong>{{ metrics.students }}</strong></article>
+  <article class="card"><span>Maestros</span><strong>{{ metrics.teachers }}</strong></article>
+  <article class="card"><span>Promedio</span><strong>{{ metrics.average_grade }}</strong></article>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h3>Calificaciones recientes</h3>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Alumno</th>
+        <th>Materia</th>
+        <th>Grado</th>
+        <th>Nota</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in recent_grades %}
+      <tr>
+        <td>{{ row.student.full_name }}</td>
+        <td>{{ row.subject_name }}</td>
+        <td>{{ row.enrollment.grade_label }}</td>
+        <td>{{ row.score }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
+

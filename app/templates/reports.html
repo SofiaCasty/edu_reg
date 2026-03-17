@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="report-grid">
+  <article class="panel">
+    <div class="panel-head"><h2>Listado de maestros</h2></div>
+    <table>
+      <thead><tr><th>Institucion</th><th>Total</th></tr></thead>
+      <tbody>
+        {% for school, total in teacher_rows %}
+        <tr><td>{{ school }}</td><td>{{ total }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </article>
+  <article class="panel">
+    <div class="panel-head"><h2>Listado de alumnos</h2></div>
+    <table>
+      <thead><tr><th>Institucion</th><th>Total</th></tr></thead>
+      <tbody>
+        {% for school, total in student_rows %}
+        <tr><td>{{ school }}</td><td>{{ total }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </article>
+  <article class="panel">
+    <div class="panel-head"><h2>Consolidado de calificaciones</h2></div>
+    <table>
+      <thead><tr><th>Institucion</th><th>Promedio</th></tr></thead>
+      <tbody>
+        {% for school, avg in grade_rows %}
+        <tr><td>{{ school }}</td><td>{{ avg }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </article>
+</section>
+{% endblock %}
+

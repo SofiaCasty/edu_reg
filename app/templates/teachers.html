@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <h2>Maestros y asignaciones</h2>
+    <p class="muted">Control de docentes, roles y cobertura academica por institucion.</p>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Docente</th>
+        <th>Institucion</th>
+        <th>Rol</th>
+        <th>Grado</th>
+        <th>Seccion</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for teacher, assignment, school in rows %}
+      <tr>
+        <td>{{ teacher.full_name }}</td>
+        <td>{{ school.name }}</td>
+        <td>{{ assignment.component_type or "-" }}</td>
+        <td>{{ assignment.grade_label or "-" }}</td>
+        <td>{{ assignment.section_name or assignment.section_id or "-" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
+

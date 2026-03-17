@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Buscador de notas</h2>
+      <p class="muted">Consulta dinamica por alumno, grado y seccion.</p>
+    </div>
+    <form method="get" class="filters">
+      <input type="text" name="q" value="{{ filters.q }}" placeholder="Nombre o NIE" />
+      <input type="text" name="grade_label" value="{{ filters.grade_label }}" placeholder="Grado" />
+      <input type="text" name="section_code" value="{{ filters.section_code }}" placeholder="Seccion" />
+      <button type="submit">Filtrar</button>
+    </form>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Alumno</th>
+        <th>Institucion</th>
+        <th>Grado</th>
+        <th>Materia</th>
+        <th>Nota</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for grade, student, enrollment, school in rows %}
+      <tr>
+        <td>{{ student.full_name }}</td>
+        <td>{{ school.name }}</td>
+        <td>{{ enrollment.grade_label or "-" }}</td>
+        <td>{{ grade.subject_name }}</td>
+        <td>{{ grade.score }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
+

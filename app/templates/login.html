@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="login-card">
+  <div>
+    <p class="eyebrow">Plataforma SSR con FastAPI</p>
+    <h2>Ingreso al sistema</h2>
+    <p class="muted">Usa una cuenta sembrada por el importador para explorar roles y permisos.</p>
+  </div>
+  {% if errors %}
+  <div class="alert">
+    {% for error in errors %}
+    <p>{{ error }}</p>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <form method="post" action="/login" class="stack">
+    <label>Email
+      <input type="email" name="email" value="{{ email or '' }}" placeholder="admin@antigravity.school" required />
+    </label>
+    <label>Contrasena
+      <input type="password" name="password" placeholder="********" required />
+    </label>
+    <button type="submit">Entrar</button>
+  </form>
+  <div class="credentials">
+    <p><strong>Admin:</strong> admin@antigravity.school / Admin123!</p>
+    <p><strong>Teacher:</strong> teacher.999999999@antigravity.school / Teacher123!</p>
+    <p><strong>Principal:</strong> principal.999999999@antigravity.school / Director123!</p>
+    <p><strong>Student:</strong> student.5061541@antigravity.school / Student123!</p>
+  </div>
+</section>
+{% endblock %}
+

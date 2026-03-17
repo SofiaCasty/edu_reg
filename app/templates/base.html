@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title or "Sistema de Gestion Escolar" }}</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script defer src="/static/app.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      {% if current_user %}
+      <aside class="sidebar">
+        <div>
+          <p class="eyebrow">Antigravity School Suite</p>
+          <h1>Sistema Escolar</h1>
+          <p class="muted">{{ current_user.full_name }}</p>
+          <p class="badge">{{ current_user.role.value }}</p>
+        </div>
+        <nav>
+          <a href="/dashboard">Dashboard</a>
+          <a href="/schools">Instituciones</a>
+          <a href="/teachers">Maestros</a>
+          <a href="/students">Alumnos</a>
+          <a href="/grades">Notas</a>
+          <a href="/reports">Reportes</a>
+        </nav>
+        <form method="post" action="/logout">
+          <button type="submit" class="ghost">Cerrar sesion</button>
+        </form>
+      </aside>
+      {% endif %}
+      <main class="content {% if not current_user %}content-full{% endif %}">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </body>
+</html>
+
