@@ -232,7 +232,11 @@ def ensure_role_users(db: Session) -> int:
     principals = db.scalars(
         select(TeacherAssignment).where(TeacherAssignment.component_type.ilike("%DIRECTOR%"))
     ).all()
+    seen_principals: set[str] = set()
     for assignment in principals:
+        if assignment.id_persona in seen_principals:
+            continue
+        seen_principals.add(assignment.id_persona)
         teacher = db.scalar(select(Teacher).where(Teacher.id_persona == assignment.id_persona))
         if not teacher:
             continue
