@@ -7,12 +7,35 @@
       <p class="muted">Busqueda por nombre, grado o seccion.</p>
     </div>
     <form method="get" class="filters">
+      <select name="school_code">
+        <option value="">Selecciona una escuela</option>
+        {% for school in school_options %}
+        <option value="{{ school.code }}" {% if filters.school_code == school.code %}selected{% endif %}>
+          {{ school.code }} | {{ school.name }}
+        </option>
+        {% endfor %}
+      </select>
       <input type="text" name="q" value="{{ filters.q }}" placeholder="Nombre o NIE" />
-      <input type="text" name="grade_label" value="{{ filters.grade_label }}" placeholder="Grado" />
-      <input type="text" name="section_code" value="{{ filters.section_code }}" placeholder="Seccion" />
+      <select name="grade_label">
+        <option value="">Todos los grados</option>
+        {% for grade in grade_options %}
+        <option value="{{ grade }}" {% if filters.grade_label == grade %}selected{% endif %}>{{ grade }}</option>
+        {% endfor %}
+      </select>
+      <select name="section_code">
+        <option value="">Todas las secciones</option>
+        {% for section in section_options %}
+        <option value="{{ section }}" {% if filters.section_code == section %}selected{% endif %}>{{ section }}</option>
+        {% endfor %}
+      </select>
       <button type="submit">Buscar</button>
     </form>
   </div>
+  {% if require_filter %}
+  <div class="empty-state">
+    <p>Para administrador, filtra primero por codigo de escuela antes de consultar alumnos.</p>
+  </div>
+  {% endif %}
   <table>
     <thead>
       <tr>
@@ -37,4 +60,3 @@
   </table>
 </section>
 {% endblock %}
-

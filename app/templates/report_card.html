@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Boleta de Calificaciones</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body class="report-card-body">
+    <div class="report-card-toolbar no-print">
+      <button onclick="window.print()">Descargar / Imprimir boleta</button>
+      <a href="/reports" class="secondary-link">Volver a reportes</a>
+    </div>
+
+    <section class="report-card-sheet">
+      <header class="report-card-header">
+        <div class="report-card-emblem">SV</div>
+        <div class="report-card-titles">
+          <h1>MINISTERIO DE EDUCACION, CIENCIA Y TECNOLOGIA</h1>
+          <h2>DEPARTAMENTO DE REGISTRO ACADEMICO</h2>
+          <h3>BOLETA DE CALIFICACIONES</h3>
+        </div>
+      </header>
+
+      <table class="report-card-meta">
+        <tbody>
+          <tr>
+            <th>Sede Educativa</th>
+            <td>{{ school.code if school else '-' }} - {{ school.name if school else 'No disponible' }}</td>
+          </tr>
+          <tr>
+            <th>Servicio Educativo</th>
+            <td>{{ enrollment.modality or 'Educacion Basica' }} - {{ enrollment.grade_label or '-' }}</td>
+          </tr>
+          <tr>
+            <th>Plan de Estudio</th>
+            <td>{{ enrollment.submodality or 'Plan de Educacion Basica' }}</td>
+          </tr>
+          <tr>
+            <th>Grado</th>
+            <td>{{ enrollment.grade_label or '-' }}</td>
+          </tr>
+          <tr>
+            <th>Seccion</th>
+            <td>{{ enrollment.section_code or '-' }}</td>
+          </tr>
+          <tr>
+            <th>Anio</th>
+            <td>{{ enrollment.academic_year }}</td>
+          </tr>
+          <tr>
+            <th>Estudiante</th>
+            <td>{{ student.nie }} - {{ student.full_name }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table class="report-card-grades">
+        <thead>
+          <tr>
+            <th>Componente plan estudio</th>
+            <th>P1</th>
+            <th>P2</th>
+            <th>P3</th>
+            <th>P4</th>
+            <th>NF</th>
+            <th>Resultado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in boleta_rows %}
+          <tr>
+            <td>{{ row.subject_name }}</td>
+            <td>{{ row.trimester_1 if row.trimester_1 is not none else '-' }}</td>
+            <td>{{ row.trimester_2 if row.trimester_2 is not none else '-' }}</td>
+            <td>{{ row.trimester_3 if row.trimester_3 is not none else '-' }}</td>
+            <td>{{ row.trimester_4 if row.trimester_4 is not none else '-' }}</td>
+            <td>{{ row.final_score if row.final_score is not none else '-' }}</td>
+            <td>{{ row.result }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <footer class="report-card-footer">
+        <p>Documento generado por el Sistema de Gestion Escolar.</p>
+        <p>Fecha de emision: {{ generated_at.strftime('%Y-%m-%d %H:%M UTC') }}</p>
+      </footer>
+    </section>
+  </body>
+</html>

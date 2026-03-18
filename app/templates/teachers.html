@@ -2,9 +2,27 @@
 {% block content %}
 <section class="panel">
   <div class="panel-head">
-    <h2>Maestros y asignaciones</h2>
-    <p class="muted">Control de docentes, roles y cobertura academica por institucion.</p>
+    <div>
+      <h2>Maestros y asignaciones</h2>
+      <p class="muted">Control de docentes, roles y cobertura academica por institucion.</p>
+    </div>
+    <form method="get" class="filters compact-filters">
+      <select name="school_code">
+        <option value="">Selecciona una escuela</option>
+        {% for school in school_options %}
+        <option value="{{ school.code }}" {% if filters.school_code == school.code %}selected{% endif %}>
+          {{ school.code }} | {{ school.name }}
+        </option>
+        {% endfor %}
+      </select>
+      <button type="submit">Filtrar</button>
+    </form>
   </div>
+  {% if require_filter %}
+  <div class="empty-state">
+    <p>Para administrador, filtra primero por codigo de escuela antes de listar maestros.</p>
+  </div>
+  {% endif %}
   <table>
     <thead>
       <tr>
@@ -29,4 +47,3 @@
   </table>
 </section>
 {% endblock %}
-

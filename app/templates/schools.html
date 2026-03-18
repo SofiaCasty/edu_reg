@@ -2,8 +2,14 @@
 {% block content %}
 <section class="panel">
   <div class="panel-head">
-    <h2>Instituciones registradas</h2>
-    <p class="muted">Catalogo importado desde la data oficial proporcionada.</p>
+    <div>
+      <h2>Instituciones registradas</h2>
+      <p class="muted">Catalogo importado desde la data oficial proporcionada.</p>
+    </div>
+    <form method="get" class="filters compact-filters">
+      <input type="text" name="q" value="{{ filters.q }}" placeholder="Buscar por codigo o nombre" />
+      <button type="submit">Buscar</button>
+    </form>
   </div>
   <table>
     <thead>
@@ -27,4 +33,3 @@
   </table>
 </section>
 {% endblock %}
-

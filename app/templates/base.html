@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ title or "Sistema de Gestion Escolar" }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/static/styles.css" />
     <script defer src="/static/app.js"></script>
   </head>
@@ -18,12 +24,18 @@
           <p class="badge">{{ current_user.role.value }}</p>
         </div>
         <nav>
-          <a href="/dashboard">Dashboard</a>
-          <a href="/schools">Instituciones</a>
-          <a href="/teachers">Maestros</a>
-          <a href="/students">Alumnos</a>
-          <a href="/grades">Notas</a>
-          <a href="/reports">Reportes</a>
+          <a href="/dashboard" class="{% if request.url.path == '/dashboard' %}active{% endif %}">Dashboard</a>
+          {% if current_user.role.value in ['admin', 'principal', 'teacher'] %}
+          <a href="/schools" class="{% if request.url.path.startswith('/schools') %}active{% endif %}">Instituciones</a>
+          {% endif %}
+          {% if current_user.role.value in ['admin', 'principal', 'teacher'] %}
+          <a href="/teachers" class="{% if request.url.path.startswith('/teachers') %}active{% endif %}">Maestros</a>
+          {% endif %}
+          {% if current_user.role.value in ['admin', 'principal', 'teacher', 'student_tutor'] %}
+          <a href="/students" class="{% if request.url.path.startswith('/students') %}active{% endif %}">Alumnos</a>
+          {% endif %}
+          <a href="/grades" class="{% if request.url.path.startswith('/grades') %}active{% endif %}">Notas</a>
+          <a href="/reports" class="{% if request.url.path.startswith('/reports') %}active{% endif %}">Reportes</a>
         </nav>
         <form method="post" action="/logout">
           <button type="submit" class="ghost">Cerrar sesion</button>
@@ -31,9 +43,16 @@
       </aside>
       {% endif %}
       <main class="content {% if not current_user %}content-full{% endif %}">
+        {% if current_user %}
+        <div class="content-toolbar">
+          <a class="back-link" href="/dashboard" onclick="if (window.history.length > 1) { window.history.back(); return false; }">
+            <span class="back-link-icon">←</span>
+            <span>Regresar</span>
+          </a>
+        </div>
+        {% endif %}
         {% block content %}{% endblock %}
       </main>
     </div>
   </body>
 </html>
-

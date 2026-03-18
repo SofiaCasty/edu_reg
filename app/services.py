@@ -98,107 +98,107 @@ def bootstrap_database(db: Session, archive_path: str | None = None) -> ImportSu
     summary = ImportSummary()
     ensure_admin_user(db)
 
-    if db.scalar(select(School.code).limit(1)):
-        return summary
+    data_already_loaded = bool(db.scalar(select(School.code).limit(1)))
 
-    summary.schools = bulk_insert_from_rows(
-        db,
-        School,
-        read_zip_csv(archive, "school_db_05022026.csv"),
-        lambda row: {
-            "code": row["code"],
-            "name": row["name"],
-            "sector": row["sector"],
-            "zone": row["zone"],
-            "department_code": int(row["department_code"]) if row["department_code"] else None,
-            "municipality_code": int(row["municipality_code"]) if row["municipality_code"] else None,
-            "created_at": parse_datetime(row["created_at"]),
-            "updated_at": parse_datetime(row["updated_at"]),
-        },
-    )
+    if not data_already_loaded:
+        summary.schools = bulk_insert_from_rows(
+            db,
+            School,
+            read_zip_csv(archive, "school_db_05022026.csv"),
+            lambda row: {
+                "code": row["code"],
+                "name": row["name"],
+                "sector": row["sector"],
+                "zone": row["zone"],
+                "department_code": int(row["department_code"]) if row["department_code"] else None,
+                "municipality_code": int(row["municipality_code"]) if row["municipality_code"] else None,
+                "created_at": parse_datetime(row["created_at"]),
+                "updated_at": parse_datetime(row["updated_at"]),
+            },
+        )
 
-    summary.teachers = bulk_insert_from_rows(
-        db,
-        Teacher,
-        read_zip_csv(archive, "teacher_db_05022026.csv"),
-        lambda row: {
-            "id": int(row["id"]),
-            "id_persona": row["id_persona"],
-            "nip": row["nip"],
-            "dui": row["dui"],
-            "first_names": row["first_names"],
-            "last_names": row["last_names"],
-            "gender": row["gender"],
-            "specialty": row["specialty"],
-            "created_at": parse_datetime(row["created_at"]),
-            "updated_at": parse_datetime(row["updated_at"]),
-        },
-    )
+        summary.teachers = bulk_insert_from_rows(
+            db,
+            Teacher,
+            read_zip_csv(archive, "teacher_db_05022026.csv"),
+            lambda row: {
+                "id": int(row["id"]),
+                "id_persona": row["id_persona"],
+                "nip": row["nip"],
+                "dui": row["dui"],
+                "first_names": row["first_names"],
+                "last_names": row["last_names"],
+                "gender": row["gender"],
+                "specialty": row["specialty"],
+                "created_at": parse_datetime(row["created_at"]),
+                "updated_at": parse_datetime(row["updated_at"]),
+            },
+        )
 
-    summary.teacher_assignments = bulk_insert_from_rows(
-        db,
-        TeacherAssignment,
-        read_zip_csv(archive, "teacher_assignments_db_05022026.csv"),
-        lambda row: {
-            "id": int(row["id"]),
-            "id_persona": row["id_persona"],
-            "school_code": row["school_code"],
-            "academic_year": int(row["academic_year"]),
-            "component_type": row["component_type"],
-            "grade_label": row["grade_label"],
-            "section_id": row["section_id"],
-            "section_name": row["section_name"],
-            "shift": row["shift"],
-            "cod_adscrito": row["cod_adscrito"],
-            "created_at": parse_datetime(row["created_at"]),
-            "updated_at": parse_datetime(row["updated_at"]),
-        },
-    )
+        summary.teacher_assignments = bulk_insert_from_rows(
+            db,
+            TeacherAssignment,
+            read_zip_csv(archive, "teacher_assignments_db_05022026.csv"),
+            lambda row: {
+                "id": int(row["id"]),
+                "id_persona": row["id_persona"],
+                "school_code": row["school_code"],
+                "academic_year": int(row["academic_year"]),
+                "component_type": row["component_type"],
+                "grade_label": row["grade_label"],
+                "section_id": row["section_id"],
+                "section_name": row["section_name"],
+                "shift": row["shift"],
+                "cod_adscrito": row["cod_adscrito"],
+                "created_at": parse_datetime(row["created_at"]),
+                "updated_at": parse_datetime(row["updated_at"]),
+            },
+        )
 
-    summary.students = bulk_insert_from_rows(
-        db,
-        Student,
-        read_zip_csv(archive, "estudent_db_05022026.csv"),
-        lambda row: {
-            "id": int(row["id"]),
-            "nie": row["nie"],
-            "gender": row["gender"],
-            "first_name1": row["first_name1"],
-            "first_name2": row["first_name2"],
-            "first_name3": row["first_name3"],
-            "last_name1": row["last_name1"],
-            "last_name2": row["last_name2"],
-            "last_name3": row["last_name3"],
-            "birth_date": parse_date(row["birth_date"]),
-            "age_current": int(row["age_current"]) if row["age_current"] else None,
-            "is_manual": row["is_manual"] == "1",
-            "father_full_name": row["father_full_name"],
-            "mother_full_name": row["mother_full_name"],
-            "address_full": row["address_full"],
-            "created_at": parse_datetime(row["created_at"]),
-            "updated_at": parse_datetime(row["updated_at"]),
-        },
-        chunk_size=10000,
-    )
+        summary.students = bulk_insert_from_rows(
+            db,
+            Student,
+            read_zip_csv(archive, "estudent_db_05022026.csv"),
+            lambda row: {
+                "id": int(row["id"]),
+                "nie": row["nie"],
+                "gender": row["gender"],
+                "first_name1": row["first_name1"],
+                "first_name2": row["first_name2"],
+                "first_name3": row["first_name3"],
+                "last_name1": row["last_name1"],
+                "last_name2": row["last_name2"],
+                "last_name3": row["last_name3"],
+                "birth_date": parse_date(row["birth_date"]),
+                "age_current": int(row["age_current"]) if row["age_current"] else None,
+                "is_manual": row["is_manual"] == "1",
+                "father_full_name": row["father_full_name"],
+                "mother_full_name": row["mother_full_name"],
+                "address_full": row["address_full"],
+                "created_at": parse_datetime(row["created_at"]),
+                "updated_at": parse_datetime(row["updated_at"]),
+            },
+            chunk_size=10000,
+        )
 
-    summary.student_enrollments = bulk_insert_from_rows(
-        db,
-        StudentEnrollment,
-        read_zip_csv(archive, "estudent_enrollments_db_05022026.csv"),
-        lambda row: {
-            "id": int(row["id"]),
-            "nie": row["nie"],
-            "school_code": row["school_code"],
-            "academic_year": int(row["academic_year"]),
-            "section_code": row["section_code"],
-            "grade_label": row["grade_label"],
-            "modality": row["modality"],
-            "submodality": row["submodality"],
-            "created_at": parse_datetime(row["created_at"]),
-            "updated_at": parse_datetime(row["updated_at"]),
-        },
-        chunk_size=10000,
-    )
+        summary.student_enrollments = bulk_insert_from_rows(
+            db,
+            StudentEnrollment,
+            read_zip_csv(archive, "estudent_enrollments_db_05022026.csv"),
+            lambda row: {
+                "id": int(row["id"]),
+                "nie": row["nie"],
+                "school_code": row["school_code"],
+                "academic_year": int(row["academic_year"]),
+                "section_code": row["section_code"],
+                "grade_label": row["grade_label"],
+                "modality": row["modality"],
+                "submodality": row["submodality"],
+                "created_at": parse_datetime(row["created_at"]),
+                "updated_at": parse_datetime(row["updated_at"]),
+            },
+            chunk_size=10000,
+        )
 
     summary.users += ensure_role_users(db)
     summary.tutor_links += ensure_tutor_users(db)
@@ -294,7 +294,60 @@ def ensure_role_users(db: Session) -> int:
             )
             created += 1
     db.commit()
+    created += ensure_demo_teacher_user(db)
     return created
+
+
+def ensure_demo_teacher_user(db: Session) -> int:
+    demo_email = "teacher.demo@antigravity.school"
+    existing = db.scalar(select(User).where(User.email == demo_email))
+    if existing:
+        return 0
+
+    preferred_teacher = db.scalar(select(Teacher).where(Teacher.id_persona == "07200156"))
+    if preferred_teacher:
+        preferred_assignment = db.scalar(
+            select(TeacherAssignment).where(TeacherAssignment.id_persona == preferred_teacher.id_persona).limit(1)
+        )
+        if preferred_assignment:
+            db.add(
+                User(
+                    email=demo_email,
+                    password_hash=hash_password("Teacher123!"),
+                    role=RoleEnum.TEACHER,
+                    full_name=preferred_teacher.full_name or "Docente de prueba",
+                    school_code=preferred_assignment.school_code,
+                    teacher_id=preferred_teacher.id,
+                )
+            )
+            db.commit()
+            return 1
+
+    assignment = db.scalar(
+        select(TeacherAssignment)
+        .where(~TeacherAssignment.component_type.ilike("%DIRECTOR%"))
+        .order_by(TeacherAssignment.id.asc())
+        .limit(1)
+    )
+    if not assignment:
+        return 0
+
+    teacher = db.scalar(select(Teacher).where(Teacher.id_persona == assignment.id_persona))
+    if not teacher:
+        return 0
+
+    db.add(
+        User(
+            email=demo_email,
+            password_hash=hash_password("Teacher123!"),
+            role=RoleEnum.TEACHER,
+            full_name=teacher.full_name or "Docente de prueba",
+            school_code=assignment.school_code,
+            teacher_id=teacher.id,
+        )
+    )
+    db.commit()
+    return 1
 
 
 def ensure_tutor_users(db: Session) -> int:

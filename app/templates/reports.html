@@ -1,5 +1,51 @@
 {% extends "base.html" %}
 {% block content %}
+{% if student_view %}
+<section class="hero">
+  <div>
+    <p class="eyebrow">Reporte academico personal</p>
+    <h2>{{ student_name }}</h2>
+    <p class="muted">Resumen de desempeno por materia para que puedas identificar en que vas bien y donde necesitas reforzar.</p>
+  </div>
+  <div class="hero-actions">
+    <a href="/reports/boleta" class="secondary-link" target="_blank">Descargar boleta</a>
+  </div>
+</section>
+
+<section class="cards">
+  <article class="card"><span>Promedio general</span><strong>{{ overall_avg }}</strong></article>
+  <article class="card"><span>Materias evaluadas</span><strong>{{ total_subjects }}</strong></article>
+  <article class="card"><span>Materia destacada</span><strong>{{ best_subject }}</strong></article>
+  <article class="card"><span>Materia a reforzar</span><strong>{{ support_subject }}</strong></article>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Progreso por materia</h2>
+  </div>
+  <div class="student-report-list">
+    {% for row in student_report %}
+    <article class="student-report-row">
+      <div class="student-report-head">
+        <div>
+          <strong>{{ row.subject_name }}</strong>
+          <p class="muted">Promedio {{ row.avg_score }} | Max {{ row.max_score }} | Min {{ row.min_score }}</p>
+        </div>
+        <strong class="student-report-score">{{ row.avg_score }}</strong>
+      </div>
+      <div class="report-bar-track">
+        <div class="report-bar-fill" style="width: {{ row.bar_width }}%"></div>
+      </div>
+      <div class="term-chip-row">
+        {% for term_name, score in row.terms %}
+        <span class="term-chip">{{ term_name }}: {{ score }}</span>
+        {% endfor %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% else %}
 <section class="report-grid">
   <article class="panel">
     <div class="panel-head"><h2>Listado de maestros</h2></div>
@@ -35,5 +81,5 @@
     </table>
   </article>
 </section>
+{% endif %}
 {% endblock %}
-

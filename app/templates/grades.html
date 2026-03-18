@@ -1,5 +1,159 @@
 {% extends "base.html" %}
 {% block content %}
+{% if message %}
+<div class="alert {% if message_type == 'error' %}alert-error{% endif %}">
+  <p>{{ message }}</p>
+</div>
+{% endif %}
+
+{% if current_user.role.value == 'teacher' %}
+<section class="panel grade-editor">
+  <div class="panel-head">
+    <div>
+      <h2>Carga de notas por grupo</h2>
+      <p class="muted">Selecciona un grado, materia y semestre para registrar notas masivamente.</p>
+    </div>
+  </div>
+  <form method="get" action="/grades" class="grade-filter-bar">
+    <label>Grupo
+      <select name="config" onchange="const parts=this.value.split('|'); this.form.grade_label.value=parts[0]||''; this.form.section_code.value=parts[1]||''; this.form.subject_name.value=parts[2]||'';">
+        <option value="">Selecciona una asignacion</option>
+        {% for config in teacher_configs %}
+        <option
+          value="{{ config.grade_label }}|{{ config.section_code }}|{{ config.subject_name }}"
+          {% if active_teacher_config and config.grade_label == active_teacher_config.grade_label and config.section_code == active_teacher_config.section_code and config.subject_name == active_teacher_config.subject_name %}selected{% endif %}
+        >
+          {{ config.label }}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Trimestre
+      <select name="term_name">
+        {% for term in term_options %}
+        <option value="{{ term }}" {% if filters.term_name == term %}selected{% endif %}>{{ term }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <input type="hidden" name="grade_label" value="{{ filters.grade_label }}" />
+    <input type="hidden" name="section_code" value="{{ filters.section_code }}" />
+    <input type="hidden" name="subject_name" value="{{ filters.subject_name }}" />
+    <button type="submit">Mostrar alumnos</button>
+  </form>
+
+  {% if active_teacher_config %}
+  <form method="post" action="/grades/bulk-save" class="bulk-grade-form">
+    <input type="hidden" name="grade_label" value="{{ active_teacher_config.grade_label }}" />
+    <input type="hidden" name="section_code" value="{{ active_teacher_config.section_code }}" />
+    <input type="hidden" name="subject_name" value="{{ active_teacher_config.subject_name }}" />
+    <input type="hidden" name="term_name" value="{{ filters.term_name }}" />
+    <div class="readonly-box">
+      <strong>{{ active_teacher_config.grade_label }}</strong>
+      <span>{{ active_teacher_config.subject_name }}</span>
+      <span>Seccion {{ active_teacher_config.section_code or 'General' }}</span>
+      <span>{{ filters.term_name }}</span>
+    </div>
+    <div class="bulk-grade-list">
+      {% for enrollment, student, school in teacher_students %}
+      {% set existing = existing_grade_map.get(enrollment.id) %}
+      <div class="bulk-grade-row">
+        <div class="bulk-student-meta">
+          <strong>{{ student.full_name }}</strong>
+          <span>{{ school.name }} | {{ enrollment.grade_label or "-" }} | {{ enrollment.section_code or "-" }}</span>
+        </div>
+        <div class="bulk-grade-inputs">
+          <input
+            type="number"
+            name="score_{{ enrollment.id }}"
+            min="0"
+            max="10"
+            step="0.1"
+            value="{{ existing.score if existing else '' }}"
+            placeholder="Nota"
+          />
+          {% if existing %}
+          <label class="delete-toggle">
+            <input type="checkbox" name="delete_{{ enrollment.id }}" />
+            Eliminar
+          </label>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="actions-row">
+      <button type="submit">Guardar notas</button>
+    </div>
+  </form>
+  {% endif %}
+</section>
+{% elif can_manage_grades %}
+<section class="panel grade-editor">
+  <div class="panel-head">
+    <div>
+      <h2>{% if edit_grade %}Editar nota{% else %}Agregar nota{% endif %}</h2>
+      <p class="muted">Gestion individual de notas para administracion.</p>
+    </div>
+  </div>
+  {% if edit_grade %}
+  <form method="post" action="/grades/{{ edit_grade.id }}/edit" class="grade-form">
+    <div class="readonly-box">
+      <strong>{{ edit_grade.student.full_name }}</strong>
+      <span>{{ edit_grade.enrollment.grade_label or "-" }} | {{ edit_grade.enrollment.section_code or "-" }}</span>
+    </div>
+    <label>Materia
+      <input type="text" name="subject_name" value="{{ edit_grade.subject_name }}" required />
+    </label>
+    <label>Periodo
+      <input type="text" name="term_name" value="{{ edit_grade.term_name }}" required />
+    </label>
+    <label>Nota
+      <input type="number" name="score" min="0" max="10" step="0.1" value="{{ edit_grade.score }}" required />
+    </label>
+    <label class="grade-form-wide">Comentarios
+      <input type="text" name="comments" value="{{ edit_grade.comments or '' }}" placeholder="Observaciones" />
+    </label>
+    <div class="actions-row">
+      <button type="submit">Guardar cambios</button>
+      <a href="/grades" class="secondary-link">Cancelar</a>
+    </div>
+  </form>
+  {% else %}
+  <form method="post" action="/grades" class="grade-form">
+    <label>Alumno
+      <select name="enrollment_id" required>
+        <option value="">Selecciona un alumno</option>
+        {% for enrollment, student, school in enrollment_options %}
+        <option value="{{ enrollment.id }}">
+          {{ student.full_name }} | {{ school.name }} | {{ enrollment.grade_label or "-" }} | {{ enrollment.section_code or "-" }}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Materia
+      <input type="text" name="subject_name" placeholder="Matematicas" required />
+    </label>
+    <label>Periodo
+      <select name="term_name" required>
+        {% for term in term_options %}
+        <option value="{{ term }}" {% if term == 'Trimestre 1' %}selected{% endif %}>{{ term }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Nota
+      <input type="number" name="score" min="0" max="10" step="0.1" placeholder="8.5" required />
+    </label>
+    <label class="grade-form-wide">Comentarios
+      <input type="text" name="comments" placeholder="Observaciones del docente" />
+    </label>
+    <div class="actions-row">
+      <button type="submit">Agregar nota</button>
+    </div>
+  </form>
+  {% endif %}
+</section>
+{% endif %}
+
 <section class="panel">
   <div class="panel-head">
     <div>
@@ -20,7 +174,11 @@
         <th>Institucion</th>
         <th>Grado</th>
         <th>Materia</th>
+        <th>Periodo</th>
         <th>Nota</th>
+        {% if can_manage_grades and current_user.role.value != 'teacher' %}
+        <th>Acciones</th>
+        {% endif %}
       </tr>
     </thead>
     <tbody>
@@ -30,11 +188,21 @@
         <td>{{ school.name }}</td>
         <td>{{ enrollment.grade_label or "-" }}</td>
         <td>{{ grade.subject_name }}</td>
+        <td>{{ grade.term_name }}</td>
         <td>{{ grade.score }}</td>
+        {% if can_manage_grades and current_user.role.value != 'teacher' %}
+        <td>
+          <div class="table-actions">
+            <a href="/grades?edit_id={{ grade.id }}" class="secondary-link">Editar</a>
+            <form method="post" action="/grades/{{ grade.id }}/delete" onsubmit="return confirm('Deseas eliminar esta nota?');">
+              <button type="submit" class="danger-button">Eliminar</button>
+            </form>
+          </div>
+        </td>
+        {% endif %}
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </section>
 {% endblock %}
-
