@@ -71,6 +71,54 @@ docker compose exec web python scripts/import_data.py
 - `DATABASE_URL`: conexion SQLAlchemy a MySQL.
 - `IMPORT_ARCHIVE_PATH`: ruta del ZIP de datos.
 - `APP_ENV`: `development` o `production`.
+- `AUTO_BOOTSTRAP_DATA`: cuando es `false`, evita la importacion/siembra automatica al iniciar la app.
+
+## Conexion a base de datos en la nube
+
+Para trabajar con una base MySQL remota, crea un archivo `.env` local con una URL de conexion y desactiva la siembra automatica si la base ya existe o no quieres importar datos al arrancar.
+
+Ejemplo:
+
+```bash
+APP_ENV=production
+SECRET_KEY=change-this-secret
+DATABASE_URL=mysql+pymysql://edu_user:TU_PASSWORD@35.222.28.57:3306/edu_reg
+AUTO_BOOTSTRAP_DATA=false
+IMPORT_ARCHIVE_PATH=/app/data/drive-download-20260317T201651Z-1-001.zip
+```
+
+Luego levanta la app normalmente:
+
+```bash
+docker compose up --build
+```
+
+Nota:
+
+- Si la base en la nube no contiene el esquema del proyecto, `Base.metadata.create_all()` creara las tablas faltantes.
+- Si la base ya tiene data productiva, deja `AUTO_BOOTSTRAP_DATA=false` para no intentar sembrar usuarios/notas demo.
+- Si la contrasena tiene caracteres especiales como `$`, codificalos en la URL. Ejemplo: `$` se convierte en `%24`.
+
+### Si Docker no llega directo a la base remota
+
+En macOS puede pasar que tu host se conecte a MySQL remoto pero el contenedor Docker no. En ese caso usa el proxy local incluido en este repo:
+
+```bash
+python3 scripts/mysql_tcp_proxy.py
+```
+
+Y apunta `DATABASE_URL` a:
+
+```bash
+mysql+pymysql://USUARIO:CLAVE@host.docker.internal:3307/NOMBRE_BD
+```
+
+Ejemplo:
+
+```bash
+DATABASE_URL=mysql+pymysql://edu_user:goes-ia-apps%242026@host.docker.internal:3307/edu_reg
+AUTO_BOOTSTRAP_DATA=false
+```
 
 ## Despliegue en Google Cloud
 
@@ -138,4 +186,3 @@ python scripts/import_data.py
 - Externalizar secretos con Secret Manager.
 - Mover la importacion grande a una tarea async o job administrativo.
 - Sustituir las notas generadas por importacion real cuando se entregue ese origen.
-

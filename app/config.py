@@ -23,7 +23,8 @@ class Settings(BaseSettings):
         alias="IMPORT_ARCHIVE_PATH",
     )
     app_host: str = Field(default="0.0.0.0", alias="APP_HOST")
-    app_port: int = Field(default=8000, alias="APP_PORT")
+    app_port: int = Field(default=8080, alias="APP_PORT")
+    auto_bootstrap_data: bool = Field(default=True, alias="AUTO_BOOTSTRAP_DATA")
 
     @property
     def is_production(self) -> bool:
@@ -37,4 +38,3 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-

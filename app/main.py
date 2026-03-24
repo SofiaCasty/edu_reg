@@ -17,11 +17,12 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
-    try:
-        bootstrap_database(db)
-    finally:
-        db.close()
+    if settings.auto_bootstrap_data:
+        db = SessionLocal()
+        try:
+            bootstrap_database(db)
+        finally:
+            db.close()
     yield
 
 
@@ -30,4 +31,3 @@ app.add_middleware(SessionMiddleware, secret_key=settings.secret_key, session_co
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.include_router(web_router)
 app.state.templates = Jinja2Templates(directory="app/templates")
-
