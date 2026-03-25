@@ -82,9 +82,9 @@ Ejemplo:
 ```bash
 APP_ENV=production
 SECRET_KEY=change-this-secret
-DATABASE_URL=mysql+pymysql://edu_user:TU_PASSWORD@35.222.28.57:3306/edu_reg
+DATABASE_URL=mysql+pymysql://edu_user:goes-ia-apps%242026@/edu_reg?unix_socket=/cloudsql/goes-ia-apps:us-central1:edu-reg-db
 AUTO_BOOTSTRAP_DATA=false
-IMPORT_ARCHIVE_PATH=/app/data/drive-download-20260317T201651Z-1-001.zip
+#IMPORT_ARCHIVE_PATH=/app/data/drive-download-20260317T201651Z-1-001.zip
 ```
 
 Luego levanta la app normalmente:

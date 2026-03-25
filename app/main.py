@@ -16,7 +16,7 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    #Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
     if settings.auto_bootstrap_data:
         db = SessionLocal()
         try:

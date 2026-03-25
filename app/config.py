@@ -12,19 +12,19 @@ class Settings(BaseSettings):
     environment: str = Field(default="development", alias="APP_ENV")
     secret_key: str = Field(default="change-me-in-production", alias="SECRET_KEY")
     database_url: str = Field(
-        default="mysql+pymysql://school_user:school_pass@db:3306/school_management",
+        default="mysql+pymysql://edu_user:goes-ia-apps%242026@/edu_reg?unix_socket=/cloudsql/goes-ia-apps:us-central1:edu-reg-db",
         alias="DATABASE_URL",
     )
     session_cookie: str = "school_session"
     default_admin_email: str = "admin@antigravity.school"
-    default_admin_password: str = "Admin123!"
-    import_archive_path: str = Field(
-        default="/app/data/drive-download-20260317T201651Z-1-001.zip",
-        alias="IMPORT_ARCHIVE_PATH",
-    )
+    default_admin_password: str = "Admin#2026"
+    #import_archive_path: str = Field(
+    #    default="/app/data/drive-download-20260317T201651Z-1-001.zip",
+    #    alias="IMPORT_ARCHIVE_PATH",
+    #)
     app_host: str = Field(default="0.0.0.0", alias="APP_HOST")
     app_port: int = Field(default=8080, alias="APP_PORT")
-    auto_bootstrap_data: bool = Field(default=True, alias="AUTO_BOOTSTRAP_DATA")
+    #auto_bootstrap_data: bool = Field(default=True, alias="AUTO_BOOTSTRAP_DATA")
 
     @property
     def is_production(self) -> bool:
