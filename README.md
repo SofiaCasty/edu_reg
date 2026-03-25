@@ -71,6 +71,7 @@ docker compose exec web python scripts/import_data.py
 - `DATABASE_URL`: conexion SQLAlchemy a MySQL.
 - `IMPORT_ARCHIVE_PATH`: ruta del ZIP de datos.
 - `APP_ENV`: `development` o `production`.
+- `AUTO_BOOTSTRAP_DATA`: cuando es `false`, evita la importacion/siembra automatica al iniciar la app. Si el ZIP no existe, la app ahora registra solo una advertencia y sigue arrancando.
 
 ## Despliegue en Google Cloud
 
@@ -138,4 +139,3 @@ python scripts/import_data.py
 - Externalizar secretos con Secret Manager.
 - Mover la importacion grande a una tarea async o job administrativo.
 - Sustituir las notas generadas por importacion real cuando se entregue ese origen.
-
