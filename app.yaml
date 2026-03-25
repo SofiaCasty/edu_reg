@@ -1,3 +1,8 @@
 runtime: custom
 env: flex
 
+beta_settings:
+  cloud_sql_instances: PROJECT:REGION:ID
+env_variables:
+  DATABASE_URL: "mysql+pymysql://edu_user:goes-ia-apps%242026@/edu_reg?unix_socket=/cloudsql/PROJECT:REGION:ID"
+  AUTO_BOOTSTRAP_DATA: "false"
