@@ -19,15 +19,15 @@ services:
     depends_on:
       - db
     environment:
-      APP_ENV: ${APP_ENV:-production}
-      SECRET_KEY: ${SECRET_KEY:-super-secret-session-key}
-      DATABASE_URL: ${DATABASE_URL:-mysql+pymysql://school_user:school_pass@db:3306/school_management}
-      IMPORT_ARCHIVE_PATH: ${IMPORT_ARCHIVE_PATH:-/app/data/drive-download-20260317T201651Z-1-001.zip}
-      AUTO_BOOTSTRAP_DATA: ${AUTO_BOOTSTRAP_DATA:-true}
+
+      APP_ENV: production
+      SECRET_KEY: super-secret-session-key
+      DATABASE_URL: mysql+pymysql://edu_user:goes-ia-apps$242026@/edu_reg?unix_socket=/cloudsql/goes-ia-apps:us-central1:edu-reg-db
+      #IMPORT_ARCHIVE_PATH: /app/data/drive-download-20260317T201651Z-1-001.zip
     ports:
       - "8080:8080"
     volumes:
-      - /Users/sofiaromero/Downloads/drive-download-20260317T201651Z-1-001.zip:/app/data/drive-download-20260317T201651Z-1-001.zip:ro
+      #- /Users/sofiaromero/Downloads/drive-download-20260317T201651Z-1-001.zip:/app/data/drive-download-20260317T201651Z-1-001.zip:ro
 
 volumes:
   mysql_data:

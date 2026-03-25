@@ -93,7 +93,11 @@ def bootstrap_database(db: Session, archive_path: str | None = None) -> ImportSu
     settings = get_settings()
     archive = Path(archive_path or settings.import_archive_path)
     if not archive.exists():
-        raise FileNotFoundError(f"No se encontro el archivo de importacion: {archive}")
+        print(f"Advertencia: no se encontro el archivo de importacion: {archive}")
+        if settings.auto_bootstrap_data:
+            return summary
+        else:
+            return summary
 
     summary = ImportSummary()
     ensure_admin_user(db)
