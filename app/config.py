@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     environment: str = Field(default="development", alias="APP_ENV")
     secret_key: str = Field(default="change-me-in-production", alias="SECRET_KEY")
     database_url: str = Field(
-        default="mysql+pymysql://school_user:school_pass@db:3306/school_management",
+        default="mysql+pymysql://edu_user:goes-ia-apps$2026@/edu_reg?unix_socket=/cloudsql/PROJECT_ID:REGION:INSTANCE",
         alias="DATABASE_URL",
     )
     session_cookie: str = "school_session"
