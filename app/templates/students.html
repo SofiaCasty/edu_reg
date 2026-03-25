@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+
 {% block content %}
 <section class="panel">
   <div class="panel-head">
@@ -6,8 +7,9 @@
       <h2>Alumnos</h2>
       <p class="muted">Busqueda por nombre, grado o seccion.</p>
     </div>
+
     <form method="get" class="filters">
-      <select name="school_code">
+      <select id="school_select" name="school_code" style="width: 250px;">
         <option value="">Selecciona una escuela</option>
         {% for school in school_options %}
         <option value="{{ school.code }}" {% if filters.school_code == school.code %}selected{% endif %}>
@@ -15,27 +17,37 @@
         </option>
         {% endfor %}
       </select>
+
       <input type="text" name="q" value="{{ filters.q }}" placeholder="Nombre o NIE" />
+
       <select name="grade_label">
         <option value="">Todos los grados</option>
         {% for grade in grade_options %}
-        <option value="{{ grade }}" {% if filters.grade_label == grade %}selected{% endif %}>{{ grade }}</option>
+        <option value="{{ grade }}" {% if filters.grade_label == grade %}selected{% endif %}>
+          {{ grade }}
+        </option>
         {% endfor %}
       </select>
+
       <select name="section_code">
         <option value="">Todas las secciones</option>
         {% for section in section_options %}
-        <option value="{{ section }}" {% if filters.section_code == section %}selected{% endif %}>{{ section }}</option>
+        <option value="{{ section }}" {% if filters.section_code == section %}selected{% endif %}>
+          {{ section }}
+        </option>
         {% endfor %}
       </select>
+
       <button type="submit">Buscar</button>
     </form>
   </div>
+
   {% if require_filter %}
   <div class="empty-state">
     <p>Para administrador, filtra primero por codigo de escuela antes de consultar alumnos.</p>
   </div>
   {% endif %}
+
   <table>
     <thead>
       <tr>
@@ -59,4 +71,18 @@
     </tbody>
   </table>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  $(function() {
+    console.log("Select2 funcionando ✅");
+
+    $('#school_select').select2({
+      placeholder: "Buscar escuela...",
+      allowClear: true,
+      width: '250px'
+    });
+  });
+</script>
 {% endblock %}

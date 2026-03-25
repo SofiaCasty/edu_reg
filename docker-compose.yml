@@ -8,7 +8,7 @@ services:
       MYSQL_PASSWORD: school_pass
       MYSQL_ROOT_PASSWORD: root_pass
     ports:
-      - "3306:3306"
+      - "3307:3306"
     command: --default-authentication-plugin=mysql_native_password
     volumes:
       - mysql_data:/var/lib/mysql
@@ -19,15 +19,15 @@ services:
     depends_on:
       - db
     environment:
+
       APP_ENV: production
       SECRET_KEY: super-secret-session-key
-      DATABASE_URL: mysql+pymysql://edu_user:goes-ia-apps$2026@/edu_reg?unix_socket=/cloudsql/goes-ia-apps:us-central1:edu-reg-db
+      DATABASE_URL: mysql+pymysql://edu_user:goes-ia-apps$242026@/edu_reg?unix_socket=/cloudsql/goes-ia-apps:us-central1:edu-reg-db
       #IMPORT_ARCHIVE_PATH: /app/data/drive-download-20260317T201651Z-1-001.zip
     ports:
-      - "8000:8000"
+      - "8080:8080"
     volumes:
-      - /Users/sofiaromero/Downloads/drive-download-20260317T201651Z-1-001.zip:/app/data/drive-download-20260317T201651Z-1-001.zip:ro
+      #- /Users/sofiaromero/Downloads/drive-download-20260317T201651Z-1-001.zip:/app/data/drive-download-20260317T201651Z-1-001.zip:ro
 
 volumes:
   mysql_data:
-

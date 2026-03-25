@@ -298,8 +298,40 @@ def ensure_role_users(db: Session) -> int:
             )
             created += 1
     db.commit()
+    created += ensure_demo_principal_user(db)
     created += ensure_demo_teacher_user(db)
+    created += ensure_demo_student_user(db)
     return created
+
+
+def ensure_demo_principal_user(db: Session) -> int:
+    demo_email = "principal.demo@antigravity.school"
+    existing = db.scalar(select(User).where(User.email == demo_email))
+    if existing:
+        return 0
+    assignment = db.scalar(
+        select(TeacherAssignment)
+        .where(TeacherAssignment.component_type.ilike("%DIRECTOR%"))
+        .order_by(TeacherAssignment.id.asc())
+        .limit(1)
+    )
+    if not assignment:
+        return 0
+    teacher = db.scalar(select(Teacher).where(Teacher.id_persona == assignment.id_persona))
+    if not teacher:
+        return 0
+    db.add(
+        User(
+            email=demo_email,
+            password_hash=hash_password("Director123!"),
+            role=RoleEnum.PRINCIPAL,
+            full_name=teacher.full_name or "Director de prueba",
+            school_code=assignment.school_code,
+            teacher_id=teacher.id,
+        )
+    )
+    db.commit()
+    return 1
 
 
 def ensure_demo_teacher_user(db: Session) -> int:
@@ -348,6 +380,32 @@ def ensure_demo_teacher_user(db: Session) -> int:
             full_name=teacher.full_name or "Docente de prueba",
             school_code=assignment.school_code,
             teacher_id=teacher.id,
+        )
+    )
+    db.commit()
+    return 1
+
+
+def ensure_demo_student_user(db: Session) -> int:
+    demo_email = "student.demo@antigravity.school"
+    existing = db.scalar(select(User).where(User.email == demo_email))
+    if existing:
+        return 0
+    preferred_student = db.scalar(select(Student).where(Student.nie == "5061541"))
+    student = preferred_student or db.scalar(select(Student).order_by(Student.id.asc()).limit(1))
+    if not student:
+        return 0
+    enrollment = db.scalar(select(StudentEnrollment).where(StudentEnrollment.nie == student.nie).limit(1))
+    if not enrollment:
+        return 0
+    db.add(
+        User(
+            email=demo_email,
+            password_hash=hash_password("Student123!"),
+            role=RoleEnum.STUDENT,
+            full_name=student.full_name or "Alumno de prueba",
+            school_code=enrollment.school_code,
+            student_id=student.id,
         )
     )
     db.commit()
