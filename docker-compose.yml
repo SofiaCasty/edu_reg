@@ -21,7 +21,7 @@ services:
     environment:
       APP_ENV: production
       SECRET_KEY: super-secret-session-key
-      DATABASE_URL: mysql+pymysql://edu_user:goes-ia-apps$2026@/edu_reg?unix_socket=/cloudsql/PROJECT_ID:REGION:INSTANCE
+      DATABASE_URL: mysql+pymysql://edu_user:goes-ia-apps$2026@/edu_reg?unix_socket=/cloudsql/goes-ia-apps:us-central1:edu-reg-db
       #IMPORT_ARCHIVE_PATH: /app/data/drive-download-20260317T201651Z-1-001.zip
     ports:
       - "8000:8000"
