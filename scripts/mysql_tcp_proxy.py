@@ -1,9 +1,11 @@
+import os
 import socket
 import threading
 
 
 LISTEN_HOST = "127.0.0.1"
-LISTEN_PORT = 3307
+DEFAULT_LISTEN_PORT = 3307
+LISTEN_PORT = int(os.environ.get("PROXY_PORT", DEFAULT_LISTEN_PORT))
 TARGET_HOST = "35.222.28.57"
 TARGET_PORT = 3306
 
