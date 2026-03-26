@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from enum import Enum
 
-from sqlalchemy import Boolean, Date, DateTime, Enum as SqlEnum, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, Enum as SqlEnum, Float, ForeignKey, Integer, SmallInteger, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -33,6 +33,44 @@ class School(Base):
     enrollments: Mapped[list[StudentEnrollment]] = relationship(back_populates="school")
     users: Mapped[list[User]] = relationship(back_populates="school")
 
+
+class SchoolSection(Base):
+    __tablename__ = "school_sections"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    school_code: Mapped[str] = mapped_column(String(20), ForeignKey("schools.code"), index=True)
+    grade_label: Mapped[str | None] = mapped_column(String(60))
+    section_id: Mapped[str | None] = mapped_column(String(30))
+    section_name: Mapped[str | None] = mapped_column(String(30))
+    shift: Mapped[str | None] = mapped_column(String(30))
+    academic_year: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class SchoolSubject(Base):
+    __tablename__ = "school_subjects"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    school_code: Mapped[str] = mapped_column(String(20), ForeignKey("schools.code"), index=True)
+    subject_name: Mapped[str | None] = mapped_column(String(512))
+    created_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class TeacherSubject(Base):
+    __tablename__ = "teacher_subjects"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id_persona: Mapped[str] = mapped_column(String(30), index=True)
+    school_code: Mapped[str] = mapped_column(String(20), index=True)
+    academic_year: Mapped[int] = mapped_column(SmallInteger)
+    component_type: Mapped[str | None] = mapped_column(String(512))
+    grade_label: Mapped[str | None] = mapped_column(String(60))
+    section_id: Mapped[str | None] = mapped_column(String(30))
+    section_name: Mapped[str | None] = mapped_column(String(30))
+    shift: Mapped[str | None] = mapped_column(String(30))
+    cod_adscrito: Mapped[str | None] = mapped_column(String(30))
+    created_at: Mapped[datetime | None] = mapped_column(DateTime)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime)
 
 class Teacher(Base):
     __tablename__ = "teachers"

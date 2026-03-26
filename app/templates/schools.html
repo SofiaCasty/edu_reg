@@ -1,15 +1,25 @@
 {% extends "base.html" %}
 {% block content %}
+{% if request.query_params.get('message') %}
+<div class="alert {% if request.query_params.get('message_type') == 'error' %}alert-error{% endif %}">
+  <p>{{ request.query_params.get('message') }}</p>
+</div>
+{% endif %}
 <section class="panel">
   <div class="panel-head">
     <div>
       <h2>Instituciones registradas</h2>
-      <p class="muted">Catalogo importado desde la data oficial proporcionada.</p>
+      <p class="muted">Catalogo de instituciones educativas.</p>
     </div>
-    <form method="get" class="filters compact-filters">
-      <input type="text" name="q" value="{{ filters.q }}" placeholder="Buscar por codigo o nombre" />
-      <button type="submit">Buscar</button>
-    </form>
+    <div class="panel-head-actions">
+      <form method="get" class="filters compact-filters">
+        <input type="text" name="q" value="{{ filters.q }}" placeholder="Buscar por codigo o nombre" />
+        <button type="submit">Buscar</button>
+      </form>
+      {% if current_user.role.value == 'admin' %}
+      <a href="/schools/new" class="secondary-link">+ Nueva Institución</a>
+      {% endif %}
+    </div>
   </div>
   <table>
     <thead>
@@ -18,6 +28,9 @@
         <th>Nombre</th>
         <th>Sector</th>
         <th>Zona</th>
+        {% if current_user.role.value == 'admin' %}
+        <th>Acciones</th>
+        {% endif %}
       </tr>
     </thead>
     <tbody>
@@ -27,6 +40,11 @@
         <td>{{ school.name }}</td>
         <td>{{ school.sector or "-" }}</td>
         <td>{{ school.zone or "-" }}</td>
+        {% if current_user.role.value == 'admin' %}
+        <td>
+          <a href="/schools/{{ school.code }}/edit" class="secondary-link">Editar</a>
+        </td>
+        {% endif %}
       </tr>
       {% endfor %}
     </tbody>

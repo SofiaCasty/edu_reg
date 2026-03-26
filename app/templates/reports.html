@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
+
+{# ── STUDENT VIEW ── #}
 {% if student_view %}
 <section class="hero">
   <div>
@@ -19,6 +21,13 @@
   <article class="card"><span>Materia a reforzar</span><strong>{{ support_subject }}</strong></article>
 </section>
 
+<section class="panel chart-panel">
+  <div class="panel-head"><h2>Promedios por Materia</h2></div>
+  <div class="chart-container">
+    <canvas id="studentBarChart"></canvas>
+  </div>
+</section>
+
 <section class="panel">
   <div class="panel-head">
     <h2>Progreso por materia</h2>
@@ -31,10 +40,10 @@
           <strong>{{ row.subject_name }}</strong>
           <p class="muted">Promedio {{ row.avg_score }} | Max {{ row.max_score }} | Min {{ row.min_score }}</p>
         </div>
-        <strong class="student-report-score">{{ row.avg_score }}</strong>
+        <strong class="student-report-score {% if row.passed %}score-pass{% else %}score-fail{% endif %}">{{ row.avg_score }}</strong>
       </div>
       <div class="report-bar-track">
-        <div class="report-bar-fill" style="width: {{ row.bar_width }}%"></div>
+        <div class="report-bar-fill {% if row.passed %}bar-pass{% else %}bar-fail{% endif %}" style="width: {{ row.bar_width }}%"></div>
       </div>
       <div class="term-chip-row">
         {% for term_name, score in row.terms %}
@@ -45,41 +54,193 @@
     {% endfor %}
   </div>
 </section>
-{% else %}
-<section class="report-grid">
-  <article class="panel">
-    <div class="panel-head"><h2>Listado de maestros</h2></div>
-    <table>
-      <thead><tr><th>Institucion</th><th>Total</th></tr></thead>
-      <tbody>
-        {% for school, total in teacher_rows %}
-        <tr><td>{{ school }}</td><td>{{ total }}</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const ctx = document.getElementById('studentBarChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: {{ chart_labels | tojson }},
+      datasets: [{
+        label: 'Promedio',
+        data: {{ chart_values | tojson }},
+        backgroundColor: {{ chart_colors | tojson }},
+        borderRadius: 8,
+        barThickness: 40,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              return ctx.parsed.y >= 7 ? ctx.parsed.y + ' ✅ Aprobado' : ctx.parsed.y + ' ⚠️ Reprobado';
+            }
+          }
+        }
+      },
+      scales: {
+        y: { beginAtZero: true, max: 10, grid: { color: 'rgba(0,71,171,0.06)' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+});
+</script>
+
+{# ── TEACHER VIEW ── #}
+{% elif teacher_view %}
+<section class="hero">
+  <div>
+    <p class="eyebrow">Reporte del Docente</p>
+    <h2>{{ current_user.full_name }}</h2>
+    <p class="muted">Estadísticas de rendimiento en las materias y grados que impartes.</p>
+  </div>
+</section>
+
+<section class="report-grid report-grid-2">
+  <article class="panel chart-panel">
+    <div class="panel-head"><h2>Promedios por Materia / Grado / Sección</h2></div>
+    <div class="chart-container">
+      <canvas id="teacherBarChart"></canvas>
+    </div>
   </article>
-  <article class="panel">
-    <div class="panel-head"><h2>Listado de alumnos</h2></div>
-    <table>
-      <thead><tr><th>Institucion</th><th>Total</th></tr></thead>
-      <tbody>
-        {% for school, total in student_rows %}
-        <tr><td>{{ school }}</td><td>{{ total }}</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </article>
-  <article class="panel">
-    <div class="panel-head"><h2>Consolidado de calificaciones</h2></div>
-    <table>
-      <thead><tr><th>Institucion</th><th>Promedio</th></tr></thead>
-      <tbody>
-        {% for school, avg in grade_rows %}
-        <tr><td>{{ school }}</td><td>{{ avg }}</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <article class="panel chart-panel">
+    <div class="panel-head"><h2>Aprobados vs Reprobados</h2></div>
+    <div class="chart-container chart-container-pie">
+      <canvas id="teacherPieChart"></canvas>
+    </div>
   </article>
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Bar
+  new Chart(document.getElementById('teacherBarChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: {{ teacher_bar_labels | tojson }},
+      datasets: [{
+        label: 'Promedio',
+        data: {{ teacher_bar_values | tojson }},
+        backgroundColor: 'rgba(0, 71, 171, 0.75)',
+        borderRadius: 8,
+        barThickness: 36,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, max: 10, grid: { color: 'rgba(0,71,171,0.06)' } },
+        x: { grid: { display: false }, ticks: { maxRotation: 45 } }
+      }
+    }
+  });
+  // Pie
+  new Chart(document.getElementById('teacherPieChart').getContext('2d'), {
+    type: 'pie',
+    data: {
+      labels: ['Aprobados', 'Reprobados'],
+      datasets: [{
+        data: [{{ teacher_passed }}, {{ teacher_failed }}],
+        backgroundColor: ['#22c55e', '#ef4444'],
+        borderWidth: 2,
+        borderColor: '#fff',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom' },
+      }
+    }
+  });
+});
+</script>
+
+{# ── PRINCIPAL / ADMIN VIEW ── #}
+{% elif principal_view %}
+<section class="hero">
+  <div>
+    <p class="eyebrow">Reportes de la Institución</p>
+    <h2>Panel Directivo</h2>
+    <p class="muted">Estadísticas generales de maestros y calificaciones de tu institución.</p>
+  </div>
+</section>
+
+<section class="report-grid report-grid-2">
+  <article class="panel chart-panel">
+    <div class="panel-head"><h2>Maestros por Materia</h2></div>
+    <div class="chart-container chart-container-pie">
+      <canvas id="principalPieChart"></canvas>
+    </div>
+  </article>
+  <article class="panel chart-panel">
+    <div class="panel-head"><h2>Promedios por Grado / Sección</h2></div>
+    <div class="chart-container">
+      <canvas id="principalBarChart"></canvas>
+    </div>
+  </article>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const palette = [
+    '#0047ab','#c79a2b','#22c55e','#ef4444','#8b5cf6','#ec4899',
+    '#06b6d4','#f97316','#84cc16','#6366f1','#14b8a6','#e11d48'
+  ];
+  // Pie
+  new Chart(document.getElementById('principalPieChart').getContext('2d'), {
+    type: 'pie',
+    data: {
+      labels: {{ pie_labels | tojson }},
+      datasets: [{
+        data: {{ pie_values | tojson }},
+        backgroundColor: palette.slice(0, {{ pie_labels | length }}),
+        borderWidth: 2,
+        borderColor: '#fff',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 14, padding: 12 } },
+      }
+    }
+  });
+  // Bar
+  new Chart(document.getElementById('principalBarChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: {{ bar_labels | tojson }},
+      datasets: [{
+        label: 'Promedio',
+        data: {{ bar_values | tojson }},
+        backgroundColor: 'rgba(199, 154, 43, 0.75)',
+        borderRadius: 8,
+        barThickness: 36,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, max: 10, grid: { color: 'rgba(0,71,171,0.06)' } },
+        x: { grid: { display: false }, ticks: { maxRotation: 45 } }
+      }
+    }
+  });
+});
+</script>
 {% endif %}
+
 {% endblock %}

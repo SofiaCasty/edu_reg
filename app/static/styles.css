@@ -610,3 +610,103 @@ button {
     padding-top: 1rem;
   }
 }
+
+/* ── CRUD Forms ── */
+.crud-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.crud-form label {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.crud-form .form-wide {
+  grid-column: 1 / -1;
+}
+
+.crud-form .actions-row {
+  grid-column: 1 / -1;
+}
+
+.form-section-title {
+  grid-column: 1 / -1;
+  margin: 0.8rem 0 0.2rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--accent-deep);
+  font-size: 1.05rem;
+}
+
+.panel-head-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ── Subject assignment rows ── */
+.subject-assignment-row {
+  margin-bottom: 0.6rem;
+}
+
+.subject-assignment-select {
+  width: 100%;
+}
+
+.assigned-list {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* ── Chart containers ── */
+.chart-panel {
+  overflow: hidden;
+}
+
+.chart-container {
+  position: relative;
+  height: 340px;
+  width: 100%;
+}
+
+.chart-container-pie {
+  height: 320px;
+}
+
+.report-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* ── Score colors ── */
+.score-pass {
+  color: #22c55e;
+}
+
+.score-fail {
+  color: #eab308;
+}
+
+.bar-pass {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+.bar-fail {
+  background: linear-gradient(90deg, #eab308, #ca8a04);
+}
+
+@media (max-width: 960px) {
+  .crud-form {
+    grid-template-columns: 1fr;
+  }
+  .report-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+

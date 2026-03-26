@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block content %}
+{% if request.query_params.get('message') %}
+<div class="alert {% if request.query_params.get('message_type') == 'error' %}alert-error{% endif %}">
+  <p>{{ request.query_params.get('message') }}</p>
+</div>
+{% endif %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>{% if teacher %}Editar Maestro{% else %}Nuevo Maestro{% endif %}</h2>
+      <p class="muted">{% if teacher %}Modifica los datos del docente.{% else %}Registra un nuevo docente en tu institución.{% endif %}</p>
+    </div>
+  </div>
+  <form method="post" action="{% if teacher %}/teachers/{{ teacher.id }}/edit{% else %}/teachers{% endif %}" class="crud-form">
+    <h3 class="form-section-title">Datos Generales</h3>
+    {% if not teacher %}
+    <label>ID Persona *
+      <input type="text" name="id_persona" required placeholder="Número de identificación" />
+    </label>
+    {% endif %}
+    <label>Nombres *
+      <input type="text" name="first_names" value="{{ teacher.first_names if teacher else '' }}" required placeholder="Nombres" />
+    </label>
+    <label>Apellidos *
+      <input type="text" name="last_names" value="{{ teacher.last_names if teacher else '' }}" required placeholder="Apellidos" />
+    </label>
+    <label>Género
+      <select name="gender">
+        <option value="">Seleccionar</option>
+        {% for g in ['Masculino', 'Femenino'] %}
+        <option value="{{ g }}" {% if teacher and teacher.gender == g %}selected{% endif %}>{{ g }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>DUI
+      <input type="text" name="dui" value="{{ teacher.dui if teacher else '' }}" placeholder="00000000-0" />
+    </label>
+    <label>Especialidad
+      <input type="text" name="specialty" value="{{ teacher.specialty if teacher else '' }}" placeholder="Ej: Matemáticas" />
+    </label>
+
+    <h3 class="form-section-title">Credenciales de Acceso</h3>
+    <label>Email
+      <input type="email" name="email" value="{{ teacher_user.email if teacher_user else '' }}" placeholder="docente@ejemplo.com" />
+    </label>
+    <label>Contraseña {% if teacher %}(dejar vacío para no cambiar){% endif %}
+      <input type="password" name="password" placeholder="Mínimo 8 chars, 1 mayúscula, 1 especial" />
+    </label>
+
+    {% if sections %}
+    <h3 class="form-section-title">Salón Asignado (Encargado)</h3>
+    <label>Grado y Sección
+      <select name="homeroom_section">
+        <option value="">Sin asignación de salón</option>
+        {% for sec in sections %}
+        <option value="{{ sec.id }}">{{ sec.grade_label }} - {{ sec.section_name }} ({{ sec.shift }})</option>
+        {% endfor %}
+      </select>
+    </label>
+    {% endif %}
+
+    {% if subjects and sections and not teacher %}
+    <h3 class="form-section-title">Materias que Imparte</h3>
+    <p class="muted">Selecciona materia, grado y sección para cada asignación.</p>
+    <div id="subject-assignments">
+      <div class="subject-assignment-row">
+        <select name="subject_section_0" class="subject-assignment-select">
+          <option value="">Selecciona materia + grado + sección</option>
+          {% for subj in subjects %}
+          {% for sec in sections %}
+          <option value="{{ subj.subject_name }}|{{ sec.id }}|{{ sec.grade_label }}">
+            {{ subj.subject_name }} — {{ sec.grade_label }} {{ sec.section_name }}
+          </option>
+          {% endfor %}
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <button type="button" class="secondary-link" onclick="addSubjectRow()">+ Agregar otra materia</button>
+    {% endif %}
+
+    {% if assigned_subjects %}
+    <h3 class="form-section-title">Materias Asignadas Actualmente</h3>
+    <div class="assigned-list">
+      {% for ts in assigned_subjects %}
+      <span class="term-chip">{{ ts.component_type }} — {{ ts.grade_label }} {{ ts.section_name or '' }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="actions-row">
+      <button type="submit">{% if teacher %}Guardar cambios{% else %}Crear Maestro{% endif %}</button>
+      <a href="/teachers" class="secondary-link">Cancelar</a>
+    </div>
+  </form>
+</section>
+
+<script>
+let subjectCounter = 1;
+function addSubjectRow() {
+  const container = document.getElementById('subject-assignments');
+  const firstSelect = container.querySelector('select');
+  const row = document.createElement('div');
+  row.className = 'subject-assignment-row';
+  const select = firstSelect.cloneNode(true);
+  select.name = 'subject_section_' + subjectCounter++;
+  select.value = '';
+  row.appendChild(select);
+  container.appendChild(row);
+}
+</script>
+{% endblock %}

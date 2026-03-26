@@ -6,10 +6,14 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
-from app.auth import validate_email, validate_password_strength, verify_password
+from app.auth import hash_password, validate_email, validate_password_strength, verify_password
 from app.database import get_db
 from app.dependencies import current_user
-from app.models import GradeRecord, RoleEnum, School, Student, StudentEnrollment, StudentTutorLink, Teacher, TeacherAssignment, User
+from app.models import (
+    GradeRecord, RoleEnum, School, SchoolSection, SchoolSubject,
+    Student, StudentEnrollment, StudentTutorLink,
+    Teacher, TeacherAssignment, TeacherSubject, User,
+)
 
 
 router = APIRouter()
@@ -20,14 +24,14 @@ def render(request: Request, template_name: str, **context):
     templates = request.app.state.templates
     base_context = {"request": request, "current_user": context.get("current_user"), "RoleEnum": RoleEnum}
     base_context.update(context)
-    return templates.TemplateResponse(template_name, base_context)
+    return templates.TemplateResponse(request, template_name, context=base_context)
 
 
 def render_standalone(request: Request, template_name: str, **context):
     templates = request.app.state.templates
     standalone_context = {"request": request, "RoleEnum": RoleEnum}
     standalone_context.update(context)
-    return templates.TemplateResponse(template_name, standalone_context)
+    return templates.TemplateResponse(request, template_name, context=standalone_context)
 
 
 def normalize_term_name(raw: str | None) -> str:
@@ -675,6 +679,7 @@ def delete_grade(
 
 @router.get("/reports", response_class=HTMLResponse)
 def reports(request: Request, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    # ── STUDENT view ──
     if user.role == RoleEnum.STUDENT and user.student_id:
         student = db.get(Student, user.student_id)
         enrollment = db.scalar(
@@ -711,15 +716,19 @@ def reports(request: Request, user: User = Depends(current_user), db: Session = 
         student_report = [
             {
                 "subject_name": subject,
-                "avg_score": round(avg_score or 0, 2),
-                "max_score": round(max_score or 0, 2),
-                "min_score": round(min_score or 0, 2),
+                "avg_score": round(float(avg_score or 0), 2),
+                "max_score": round(float(max_score or 0), 2),
+                "min_score": round(float(min_score or 0), 2),
                 "total_scores": total_scores,
-                "bar_width": max(8, min(100, int((avg_score or 0) * 10))),
+                "bar_width": max(8, min(100, int(float(avg_score or 0) * 10))),
                 "terms": latest_map.get(subject, []),
+                "passed": float(avg_score or 0) >= 7.0,
             }
             for subject, avg_score, max_score, min_score, total_scores in subject_rows
         ]
+        chart_labels = [r["subject_name"] for r in student_report]
+        chart_values = [r["avg_score"] for r in student_report]
+        chart_colors = ["#22c55e" if r["passed"] else "#eab308" for r in student_report]
         return render(
             request,
             "reports.html",
@@ -729,52 +738,109 @@ def reports(request: Request, user: User = Depends(current_user), db: Session = 
             student_obj=student,
             student_enrollment=enrollment,
             student_school=school,
-            overall_avg=round(overall_avg, 2),
+            overall_avg=round(float(overall_avg), 2),
             total_subjects=total_subjects,
             best_subject=best_subject[0] if best_subject else "-",
             support_subject=support_subject[0] if support_subject else "-",
             student_report=student_report,
+            chart_labels=chart_labels,
+            chart_values=chart_values,
+            chart_colors=chart_colors,
         )
 
+    # ── TEACHER view ──
+    if user.role == RoleEnum.TEACHER and user.teacher:
+        assignments = teacher_assignment_scope(user, db)
+        teacher_bar_data = []
+        all_passed = 0
+        all_failed = 0
+        for assignment in assignments:
+            subject_name = (assignment.component_type or "GRADO").strip()
+            if subject_name.upper() == "DIRECTOR" or subject_name.upper() == "GRADO":
+                continue
+            stmt = (
+                select(func.avg(GradeRecord.score), func.count(GradeRecord.id))
+                .join(StudentEnrollment, GradeRecord.enrollment_id == StudentEnrollment.id)
+                .where(
+                    StudentEnrollment.school_code == assignment.school_code,
+                    GradeRecord.subject_name == subject_name,
+                )
+            )
+            if assignment.grade_label:
+                stmt = stmt.where(StudentEnrollment.grade_label == assignment.grade_label)
+            if assignment.section_id:
+                stmt = stmt.where(StudentEnrollment.section_code == assignment.section_id)
+            row = db.execute(stmt).first()
+            avg_val = float(row[0] or 0) if row and row[0] else 0
+            count_val = int(row[1]) if row and row[1] else 0
+            label = f"{subject_name} | {assignment.grade_label or '-'} {assignment.section_id or ''}"
+            teacher_bar_data.append({"label": label, "value": round(avg_val, 2)})
+
+            if count_val > 0:
+                passed_count = db.scalar(
+                    select(func.count(GradeRecord.id))
+                    .join(StudentEnrollment, GradeRecord.enrollment_id == StudentEnrollment.id)
+                    .where(
+                        StudentEnrollment.school_code == assignment.school_code,
+                        GradeRecord.subject_name == subject_name,
+                        GradeRecord.score >= 7,
+                    )
+                ) or 0
+                all_passed += passed_count
+                all_failed += (count_val - passed_count)
+
+        return render(
+            request,
+            "reports.html",
+            current_user=user,
+            teacher_view=True,
+            teacher_bar_labels=[d["label"] for d in teacher_bar_data],
+            teacher_bar_values=[d["value"] for d in teacher_bar_data],
+            teacher_passed=all_passed,
+            teacher_failed=all_failed,
+        )
+
+    # ── PRINCIPAL / ADMIN view ──
     school_codes = visible_school_codes(user, db)
-    teacher_rows_stmt = (
-        select(School.name, func.count(func.distinct(TeacherAssignment.id_persona)))
-        .join(TeacherAssignment, TeacherAssignment.school_code == School.code)
-        .group_by(School.name)
-        .order_by(School.name)
-    )
-    student_rows_stmt = (
-        select(School.name, func.count(StudentEnrollment.id))
-        .join(StudentEnrollment, StudentEnrollment.school_code == School.code)
-        .group_by(School.name)
-        .order_by(School.name)
-    )
-    grade_rows_stmt = (
-        select(School.name, func.avg(GradeRecord.score))
-        .join(StudentEnrollment, StudentEnrollment.school_code == School.code)
-        .join(GradeRecord, GradeRecord.enrollment_id == StudentEnrollment.id)
-        .group_by(School.name)
-        .order_by(School.name)
+
+    # Pie: teachers per subject
+    subj_stmt = (
+        select(TeacherAssignment.component_type, func.count(func.distinct(TeacherAssignment.id_persona)))
+        .where(TeacherAssignment.component_type.is_not(None))
     )
     if school_codes is not None:
-        teacher_rows_stmt = teacher_rows_stmt.where(School.code.in_(school_codes))
-        student_rows_stmt = student_rows_stmt.where(School.code.in_(school_codes))
-        grade_rows_stmt = grade_rows_stmt.where(School.code.in_(school_codes))
-    if user.role == RoleEnum.STUDENT and user.school_code:
-        teacher_rows_stmt = teacher_rows_stmt.where(School.code == user.school_code)
-        student_rows_stmt = student_rows_stmt.where(School.code == user.school_code)
-        grade_rows_stmt = grade_rows_stmt.where(School.code == user.school_code)
+        subj_stmt = subj_stmt.where(TeacherAssignment.school_code.in_(school_codes))
+    subj_stmt = subj_stmt.group_by(TeacherAssignment.component_type).order_by(func.count(func.distinct(TeacherAssignment.id_persona)).desc()).limit(12)
+    teacher_per_subject = db.execute(subj_stmt).all()
 
-    teacher_rows = db.execute(teacher_rows_stmt.limit(25)).all()
-    student_rows = db.execute(student_rows_stmt.limit(25)).all()
-    grade_rows = [(name, round(avg or 0, 2)) for name, avg in db.execute(grade_rows_stmt.limit(25)).all()]
+    # Bar: avg per grade/section
+    avg_stmt = (
+        select(
+            StudentEnrollment.grade_label,
+            StudentEnrollment.section_code,
+            func.avg(GradeRecord.score),
+        )
+        .join(GradeRecord, GradeRecord.enrollment_id == StudentEnrollment.id)
+    )
+    if school_codes is not None:
+        avg_stmt = avg_stmt.where(StudentEnrollment.school_code.in_(school_codes))
+    avg_stmt = avg_stmt.group_by(StudentEnrollment.grade_label, StudentEnrollment.section_code).order_by(StudentEnrollment.grade_label).limit(30)
+    avg_rows = db.execute(avg_stmt).all()
+
+    pie_labels = [row[0] or "Sin materia" for row in teacher_per_subject]
+    pie_values = [int(row[1]) for row in teacher_per_subject]
+    bar_labels = [f"{row[0] or '-'} {row[1] or ''}" for row in avg_rows]
+    bar_values = [round(float(row[2] or 0), 2) for row in avg_rows]
+
     return render(
         request,
         "reports.html",
         current_user=user,
-        teacher_rows=teacher_rows,
-        student_rows=student_rows,
-        grade_rows=grade_rows,
+        principal_view=True,
+        pie_labels=pie_labels,
+        pie_values=pie_values,
+        bar_labels=bar_labels,
+        bar_values=bar_values,
     )
 
 
@@ -831,3 +897,447 @@ def student_report_card(request: Request, user: User = Depends(current_user), db
         boleta_rows=boleta_rows,
         generated_at=datetime.utcnow(),
     )
+
+
+# ───────────────────────────────────────────────────────────────
+#  SCHOOLS CRUD  (Admin only)
+# ───────────────────────────────────────────────────────────────
+
+@router.get("/schools/new", response_class=HTMLResponse)
+def school_new_form(request: Request, user: User = Depends(current_user)):
+    if user.role != RoleEnum.ADMIN:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    return render(request, "school_form.html", current_user=user, school=None)
+
+
+@router.post("/schools", response_class=HTMLResponse)
+def school_create(
+    request: Request,
+    code: str = Form(...),
+    name: str = Form(...),
+    sector: str = Form(""),
+    zone: str = Form(""),
+    department_code: str = Form(""),
+    municipality_code: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    if user.role != RoleEnum.ADMIN:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    existing = db.get(School, code.strip())
+    if existing:
+        return redirect_with_message("/schools/new", "Ya existe una institución con ese código.", error=True)
+    db.add(School(
+        code=code.strip(),
+        name=name.strip(),
+        sector=sector.strip() or None,
+        zone=zone.strip() or None,
+        department_code=int(department_code) if department_code.strip() else None,
+        municipality_code=int(municipality_code) if municipality_code.strip() else None,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+    ))
+    db.commit()
+    return redirect_with_message("/schools", "Institución creada correctamente.")
+
+
+@router.get("/schools/{code}/edit", response_class=HTMLResponse)
+def school_edit_form(code: str, request: Request, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    if user.role != RoleEnum.ADMIN:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    school = db.get(School, code)
+    if not school:
+        raise HTTPException(status_code=404, detail="Institución no encontrada")
+    return render(request, "school_form.html", current_user=user, school=school)
+
+
+@router.post("/schools/{code}/edit", response_class=HTMLResponse)
+def school_update(
+    code: str,
+    request: Request,
+    name: str = Form(...),
+    sector: str = Form(""),
+    zone: str = Form(""),
+    department_code: str = Form(""),
+    municipality_code: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    if user.role != RoleEnum.ADMIN:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    school = db.get(School, code)
+    if not school:
+        raise HTTPException(status_code=404, detail="Institución no encontrada")
+    school.name = name.strip()
+    school.sector = sector.strip() or None
+    school.zone = zone.strip() or None
+    school.department_code = int(department_code) if department_code.strip() else None
+    school.municipality_code = int(municipality_code) if municipality_code.strip() else None
+    school.updated_at = datetime.utcnow()
+    db.commit()
+    return redirect_with_message("/schools", "Institución actualizada correctamente.")
+
+
+# ───────────────────────────────────────────────────────────────
+#  TEACHERS CRUD  (Principal creates)
+# ───────────────────────────────────────────────────────────────
+
+def _teacher_form_context(user: User, db: Session, teacher=None, teacher_user=None, assigned_subjects=None):
+    school_code = user.school_code
+    sections = []
+    subjects = []
+    if school_code:
+        sections = db.scalars(
+            select(SchoolSection)
+            .where(SchoolSection.school_code == school_code)
+            .order_by(SchoolSection.grade_label, SchoolSection.section_name)
+        ).all()
+        subjects = db.scalars(
+            select(SchoolSubject)
+            .where(SchoolSubject.school_code == school_code)
+            .order_by(SchoolSubject.subject_name)
+        ).all()
+    return {
+        "teacher": teacher,
+        "teacher_user": teacher_user,
+        "school_code": school_code,
+        "sections": sections,
+        "subjects": subjects,
+        "assigned_subjects": assigned_subjects or [],
+    }
+
+
+@router.get("/teachers/new", response_class=HTMLResponse)
+def teacher_new_form(request: Request, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    if user.role not in {RoleEnum.ADMIN, RoleEnum.PRINCIPAL}:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    ctx = _teacher_form_context(user, db)
+    return render(request, "teacher_form.html", current_user=user, **ctx)
+
+
+@router.post("/teachers", response_class=HTMLResponse)
+async def teacher_create(
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    if user.role not in {RoleEnum.ADMIN, RoleEnum.PRINCIPAL}:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    form = await request.form()
+    id_persona = str(form.get("id_persona", "")).strip()
+    first_names = str(form.get("first_names", "")).strip()
+    last_names = str(form.get("last_names", "")).strip()
+    gender = str(form.get("gender", "")).strip()
+    dui = str(form.get("dui", "")).strip()
+    specialty = str(form.get("specialty", "")).strip()
+    email = str(form.get("email", "")).strip().lower()
+    password = str(form.get("password", "")).strip()
+    homeroom_section = str(form.get("homeroom_section", "")).strip()
+    school_code = user.school_code
+
+    if not id_persona or not first_names or not last_names:
+        return redirect_with_message("/teachers/new", "Campos obligatorios incompletos.", error=True)
+    if email and not validate_email(email):
+        return redirect_with_message("/teachers/new", "Email inválido.", error=True)
+    if password and not validate_password_strength(password):
+        return redirect_with_message("/teachers/new", "La contraseña debe tener al menos 8 caracteres, una mayúscula y un carácter especial.", error=True)
+
+    existing_teacher = db.scalar(select(Teacher).where(Teacher.id_persona == id_persona))
+    if existing_teacher:
+        return redirect_with_message("/teachers/new", "Ya existe un maestro con esa identificación.", error=True)
+
+    teacher = Teacher(
+        id_persona=id_persona,
+        first_names=first_names,
+        last_names=last_names,
+        gender=gender or None,
+        dui=dui or None,
+        specialty=specialty or None,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+    )
+    db.add(teacher)
+    db.flush()
+
+    if email and password:
+        existing_user = db.scalar(select(User).where(User.email == email))
+        if existing_user:
+            return redirect_with_message("/teachers/new", "Ya existe un usuario con ese email.", error=True)
+        db.add(User(
+            email=email,
+            password_hash=hash_password(password),
+            role=RoleEnum.TEACHER,
+            full_name=f"{first_names} {last_names}",
+            school_code=school_code,
+            teacher_id=teacher.id,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+        ))
+
+    if homeroom_section and school_code:
+        section = db.scalar(select(SchoolSection).where(SchoolSection.id == int(homeroom_section)))
+        if section:
+            db.add(TeacherAssignment(
+                id_persona=id_persona,
+                school_code=school_code,
+                academic_year=datetime.utcnow().year,
+                component_type="Grado",
+                grade_label=section.grade_label,
+                section_id=section.section_id,
+                section_name=section.section_name,
+                shift=section.shift,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow(),
+            ))
+
+    subject_keys = [k for k in form.keys() if k.startswith("subject_section_")]
+    for key in subject_keys:
+        val = str(form.get(key, "")).strip()
+        if not val:
+            continue
+        parts = val.split("|", 2)
+        if len(parts) != 3:
+            continue
+        subj_name, section_id_str, grade_lbl = parts
+        section = db.scalar(select(SchoolSection).where(SchoolSection.id == int(section_id_str))) if section_id_str.isdigit() else None
+        db.add(TeacherSubject(
+            id_persona=id_persona,
+            school_code=school_code,
+            academic_year=datetime.utcnow().year,
+            component_type=subj_name,
+            grade_label=grade_lbl,
+            section_id=section.section_id if section else None,
+            section_name=section.section_name if section else None,
+            shift=section.shift if section else None,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+        ))
+
+    db.commit()
+    return redirect_with_message("/teachers", "Maestro creado correctamente.")
+
+
+@router.get("/teachers/{teacher_id}/edit", response_class=HTMLResponse)
+def teacher_edit_form(teacher_id: int, request: Request, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    if user.role not in {RoleEnum.ADMIN, RoleEnum.PRINCIPAL}:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    teacher = db.get(Teacher, teacher_id)
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Maestro no encontrado")
+    teacher_user = db.scalar(select(User).where(User.teacher_id == teacher.id))
+    assigned = db.scalars(
+        select(TeacherSubject).where(TeacherSubject.id_persona == teacher.id_persona)
+    ).all()
+    ctx = _teacher_form_context(user, db, teacher=teacher, teacher_user=teacher_user, assigned_subjects=assigned)
+    return render(request, "teacher_form.html", current_user=user, **ctx)
+
+
+@router.post("/teachers/{teacher_id}/edit", response_class=HTMLResponse)
+async def teacher_update(
+    teacher_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    if user.role not in {RoleEnum.ADMIN, RoleEnum.PRINCIPAL}:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    teacher = db.get(Teacher, teacher_id)
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Maestro no encontrado")
+    form = await request.form()
+    teacher.first_names = str(form.get("first_names", "")).strip() or teacher.first_names
+    teacher.last_names = str(form.get("last_names", "")).strip() or teacher.last_names
+    teacher.gender = str(form.get("gender", "")).strip() or teacher.gender
+    teacher.dui = str(form.get("dui", "")).strip() or teacher.dui
+    teacher.specialty = str(form.get("specialty", "")).strip() or teacher.specialty
+    teacher.updated_at = datetime.utcnow()
+
+    teacher_user = db.scalar(select(User).where(User.teacher_id == teacher.id))
+    email = str(form.get("email", "")).strip().lower()
+    password = str(form.get("password", "")).strip()
+    if teacher_user:
+        if email:
+            teacher_user.email = email
+        teacher_user.full_name = f"{teacher.first_names} {teacher.last_names}"
+        if password and validate_password_strength(password):
+            teacher_user.password_hash = hash_password(password)
+        teacher_user.updated_at = datetime.utcnow()
+
+    db.commit()
+    return redirect_with_message("/teachers", "Maestro actualizado correctamente.")
+
+
+# ───────────────────────────────────────────────────────────────
+#  STUDENTS CRUD  (Principal / Teacher creates)
+# ───────────────────────────────────────────────────────────────
+
+@router.get("/students/new", response_class=HTMLResponse)
+def student_new_form(request: Request, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    if user.role not in {RoleEnum.ADMIN, RoleEnum.PRINCIPAL, RoleEnum.TEACHER}:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    school_code = user.school_code
+    sections = []
+    if school_code:
+        sections = db.scalars(
+            select(SchoolSection)
+            .where(SchoolSection.school_code == school_code)
+            .order_by(SchoolSection.grade_label, SchoolSection.section_name)
+        ).all()
+    return render(request, "student_form.html", current_user=user, student=None, enrollment=None,
+                  sections=sections, school_code=school_code)
+
+
+@router.post("/students", response_class=HTMLResponse)
+def student_create(
+    request: Request,
+    nie: str = Form(...),
+    first_name1: str = Form(...),
+    last_name1: str = Form(...),
+    first_name2: str = Form(""),
+    last_name2: str = Form(""),
+    gender: str = Form(""),
+    birth_date: str = Form(""),
+    section_id: str = Form(""),
+    father_full_name: str = Form(""),
+    mother_full_name: str = Form(""),
+    address_full: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    if user.role not in {RoleEnum.ADMIN, RoleEnum.PRINCIPAL, RoleEnum.TEACHER}:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    school_code = user.school_code
+    existing = db.scalar(select(Student).where(Student.nie == nie.strip()))
+    if existing:
+        return redirect_with_message("/students/new", "Ya existe un alumno con ese NIE.", error=True)
+
+    from datetime import date as dt_date
+    bd = None
+    if birth_date.strip():
+        try:
+            bd = dt_date.fromisoformat(birth_date.strip())
+        except ValueError:
+            pass
+
+    student = Student(
+        nie=nie.strip(),
+        first_name1=first_name1.strip(),
+        first_name2=first_name2.strip() or None,
+        last_name1=last_name1.strip(),
+        last_name2=last_name2.strip() or None,
+        gender=gender.strip() or None,
+        birth_date=bd,
+        father_full_name=father_full_name.strip() or None,
+        mother_full_name=mother_full_name.strip() or None,
+        address_full=address_full.strip() or None,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+    )
+    db.add(student)
+    db.flush()
+
+    if section_id and school_code:
+        section = db.scalar(select(SchoolSection).where(SchoolSection.id == int(section_id))) if section_id.isdigit() else None
+        db.add(StudentEnrollment(
+            nie=nie.strip(),
+            school_code=school_code,
+            academic_year=datetime.utcnow().year,
+            section_code=section.section_id if section else None,
+            grade_label=section.grade_label if section else None,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+        ))
+    db.commit()
+    return redirect_with_message("/students", "Alumno creado correctamente.")
+
+
+@router.get("/students/{student_id}/edit", response_class=HTMLResponse)
+def student_edit_form(student_id: int, request: Request, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    if user.role not in {RoleEnum.ADMIN, RoleEnum.PRINCIPAL, RoleEnum.TEACHER}:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    student = db.get(Student, student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Alumno no encontrado")
+    enrollment = db.scalar(
+        select(StudentEnrollment).where(StudentEnrollment.nie == student.nie)
+        .order_by(StudentEnrollment.academic_year.desc()).limit(1)
+    )
+    school_code = user.school_code or (enrollment.school_code if enrollment else None)
+    sections = []
+    if school_code:
+        sections = db.scalars(
+            select(SchoolSection)
+            .where(SchoolSection.school_code == school_code)
+            .order_by(SchoolSection.grade_label, SchoolSection.section_name)
+        ).all()
+    return render(request, "student_form.html", current_user=user, student=student,
+                  enrollment=enrollment, sections=sections, school_code=school_code)
+
+
+@router.post("/students/{student_id}/edit", response_class=HTMLResponse)
+def student_update(
+    student_id: int,
+    request: Request,
+    first_name1: str = Form(...),
+    last_name1: str = Form(...),
+    first_name2: str = Form(""),
+    last_name2: str = Form(""),
+    gender: str = Form(""),
+    birth_date: str = Form(""),
+    father_full_name: str = Form(""),
+    mother_full_name: str = Form(""),
+    address_full: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    if user.role not in {RoleEnum.ADMIN, RoleEnum.PRINCIPAL, RoleEnum.TEACHER}:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    student = db.get(Student, student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Alumno no encontrado")
+
+    from datetime import date as dt_date
+    bd = None
+    if birth_date.strip():
+        try:
+            bd = dt_date.fromisoformat(birth_date.strip())
+        except ValueError:
+            pass
+
+    student.first_name1 = first_name1.strip()
+    student.first_name2 = first_name2.strip() or None
+    student.last_name1 = last_name1.strip()
+    student.last_name2 = last_name2.strip() or None
+    student.gender = gender.strip() or None
+    student.birth_date = bd
+    student.father_full_name = father_full_name.strip() or None
+    student.mother_full_name = mother_full_name.strip() or None
+    student.address_full = address_full.strip() or None
+    student.updated_at = datetime.utcnow()
+    db.commit()
+    return redirect_with_message("/students", "Alumno actualizado correctamente.")
+
+
+# ───────────────────────────────────────────────────────────────
+#  API helpers for dynamic forms
+# ───────────────────────────────────────────────────────────────
+
+@router.get("/api/school/{school_code}/sections")
+def api_school_sections(school_code: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    sections = db.scalars(
+        select(SchoolSection)
+        .where(SchoolSection.school_code == school_code)
+        .order_by(SchoolSection.grade_label, SchoolSection.section_name)
+    ).all()
+    return [{"id": s.id, "grade_label": s.grade_label, "section_name": s.section_name, "shift": s.shift} for s in sections]
+
+
+@router.get("/api/school/{school_code}/subjects")
+def api_school_subjects(school_code: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    subjects = db.scalars(
+        select(SchoolSubject)
+        .where(SchoolSubject.school_code == school_code)
+        .order_by(SchoolSubject.subject_name)
+    ).all()
+    return [{"id": s.id, "subject_name": s.subject_name} for s in subjects]
+

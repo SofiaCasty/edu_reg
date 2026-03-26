@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+{% if request.query_params.get('message') %}
+<div class="alert {% if request.query_params.get('message_type') == 'error' %}alert-error{% endif %}">
+  <p>{{ request.query_params.get('message') }}</p>
+</div>
+{% endif %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>{% if student %}Editar Alumno{% else %}Nuevo Alumno{% endif %}</h2>
+      <p class="muted">{% if student %}Modifica los datos del alumno.{% else %}Registra un nuevo alumno en el sistema.{% endif %}</p>
+    </div>
+  </div>
+  <form method="post" action="{% if student %}/students/{{ student.id }}/edit{% else %}/students{% endif %}" class="crud-form">
+    <h3 class="form-section-title">Datos del Alumno</h3>
+    {% if not student %}
+    <label>NIE *
+      <input type="text" name="nie" required placeholder="Número de Identificación Estudiantil" />
+    </label>
+    {% endif %}
+    <label>Primer Nombre *
+      <input type="text" name="first_name1" value="{{ student.first_name1 if student else '' }}" required placeholder="Primer nombre" />
+    </label>
+    <label>Segundo Nombre
+      <input type="text" name="first_name2" value="{{ student.first_name2 if student else '' }}" placeholder="Segundo nombre" />
+    </label>
+    <label>Primer Apellido *
+      <input type="text" name="last_name1" value="{{ student.last_name1 if student else '' }}" required placeholder="Primer apellido" />
+    </label>
+    <label>Segundo Apellido
+      <input type="text" name="last_name2" value="{{ student.last_name2 if student else '' }}" placeholder="Segundo apellido" />
+    </label>
+    <label>Género
+      <select name="gender">
+        <option value="">Seleccionar</option>
+        {% for g in ['Masculino', 'Femenino'] %}
+        <option value="{{ g }}" {% if student and student.gender == g %}selected{% endif %}>{{ g }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Fecha de Nacimiento
+      <input type="date" name="birth_date" value="{{ student.birth_date.isoformat() if student and student.birth_date else '' }}" />
+    </label>
+
+    {% if sections and not student %}
+    <h3 class="form-section-title">Grado y Sección</h3>
+    <label>Asignación
+      <select name="section_id">
+        <option value="">Seleccionar grado y sección</option>
+        {% for sec in sections %}
+        <option value="{{ sec.id }}">{{ sec.grade_label }} - {{ sec.section_name }} ({{ sec.shift }})</option>
+        {% endfor %}
+      </select>
+    </label>
+    {% endif %}
+
+    {% if enrollment %}
+    <h3 class="form-section-title">Matrícula Actual</h3>
+    <div class="readonly-box">
+      <strong>{{ enrollment.grade_label or '-' }}</strong>
+      <span>Sección {{ enrollment.section_code or '-' }}</span>
+      <span>Año {{ enrollment.academic_year }}</span>
+    </div>
+    {% endif %}
+
+    <h3 class="form-section-title">Datos del Responsable</h3>
+    <label>Nombre completo del Padre
+      <input type="text" name="father_full_name" value="{{ student.father_full_name if student else '' }}" placeholder="Nombre completo del padre" />
+    </label>
+    <label>Nombre completo de la Madre
+      <input type="text" name="mother_full_name" value="{{ student.mother_full_name if student else '' }}" placeholder="Nombre completo de la madre" />
+    </label>
+    <label class="form-wide">Dirección
+      <input type="text" name="address_full" value="{{ student.address_full if student else '' }}" placeholder="Dirección completa" />
+    </label>
+
+    <div class="actions-row">
+      <button type="submit">{% if student %}Guardar cambios{% else %}Crear Alumno{% endif %}</button>
+      <a href="/students" class="secondary-link">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

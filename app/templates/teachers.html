@@ -1,22 +1,32 @@
 {% extends "base.html" %}
 {% block content %}
+{% if request.query_params.get('message') %}
+<div class="alert {% if request.query_params.get('message_type') == 'error' %}alert-error{% endif %}">
+  <p>{{ request.query_params.get('message') }}</p>
+</div>
+{% endif %}
 <section class="panel">
   <div class="panel-head">
     <div>
       <h2>Maestros y asignaciones</h2>
       <p class="muted">Control de docentes, roles y cobertura academica por institucion.</p>
     </div>
-    <form method="get" class="filters compact-filters">
-      <select name="school_code">
-        <option value="">Selecciona una escuela</option>
-        {% for school in school_options %}
-        <option value="{{ school.code }}" {% if filters.school_code == school.code %}selected{% endif %}>
-          {{ school.code }} | {{ school.name }}
-        </option>
-        {% endfor %}
-      </select>
-      <button type="submit">Filtrar</button>
-    </form>
+    <div class="panel-head-actions">
+      <form method="get" class="filters compact-filters">
+        <select name="school_code">
+          <option value="">Selecciona una escuela</option>
+          {% for school in school_options %}
+          <option value="{{ school.code }}" {% if filters.school_code == school.code %}selected{% endif %}>
+            {{ school.code }} | {{ school.name }}
+          </option>
+          {% endfor %}
+        </select>
+        <button type="submit">Filtrar</button>
+      </form>
+      {% if current_user.role.value in ['admin', 'principal'] %}
+      <a href="/teachers/new" class="secondary-link">+ Nuevo Maestro</a>
+      {% endif %}
+    </div>
   </div>
   {% if require_filter %}
   <div class="empty-state">
@@ -31,6 +41,9 @@
         <th>Rol</th>
         <th>Grado</th>
         <th>Seccion</th>
+        {% if current_user.role.value in ['admin', 'principal'] %}
+        <th>Acciones</th>
+        {% endif %}
       </tr>
     </thead>
     <tbody>
@@ -41,6 +54,11 @@
         <td>{{ assignment.component_type or "-" }}</td>
         <td>{{ assignment.grade_label or "-" }}</td>
         <td>{{ assignment.section_name or assignment.section_id or "-" }}</td>
+        {% if current_user.role.value in ['admin', 'principal'] %}
+        <td>
+          <a href="/teachers/{{ teacher.id }}/edit" class="secondary-link">Editar</a>
+        </td>
+        {% endif %}
       </tr>
       {% endfor %}
     </tbody>

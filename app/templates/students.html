@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 
 {% block content %}
+{% if request.query_params.get('message') %}
+<div class="alert {% if request.query_params.get('message_type') == 'error' %}alert-error{% endif %}">
+  <p>{{ request.query_params.get('message') }}</p>
+</div>
+{% endif %}
 <section class="panel">
   <div class="panel-head">
     <div>
@@ -8,38 +13,43 @@
       <p class="muted">Busqueda por nombre, grado o seccion.</p>
     </div>
 
-    <form method="get" class="filters">
-      <select id="school_select" name="school_code" style="width: 250px;">
-        <option value="">Selecciona una escuela</option>
-        {% for school in school_options %}
-        <option value="{{ school.code }}" {% if filters.school_code == school.code %}selected{% endif %}>
-          {{ school.code }} | {{ school.name }}
-        </option>
-        {% endfor %}
-      </select>
+    <div class="panel-head-actions">
+      <form method="get" class="filters">
+        <select id="school_select" name="school_code" style="width: 250px;">
+          <option value="">Selecciona una escuela</option>
+          {% for school in school_options %}
+          <option value="{{ school.code }}" {% if filters.school_code == school.code %}selected{% endif %}>
+            {{ school.code }} | {{ school.name }}
+          </option>
+          {% endfor %}
+        </select>
 
-      <input type="text" name="q" value="{{ filters.q }}" placeholder="Nombre o NIE" />
+        <input type="text" name="q" value="{{ filters.q }}" placeholder="Nombre o NIE" />
 
-      <select name="grade_label">
-        <option value="">Todos los grados</option>
-        {% for grade in grade_options %}
-        <option value="{{ grade }}" {% if filters.grade_label == grade %}selected{% endif %}>
-          {{ grade }}
-        </option>
-        {% endfor %}
-      </select>
+        <select name="grade_label">
+          <option value="">Todos los grados</option>
+          {% for grade in grade_options %}
+          <option value="{{ grade }}" {% if filters.grade_label == grade %}selected{% endif %}>
+            {{ grade }}
+          </option>
+          {% endfor %}
+        </select>
 
-      <select name="section_code">
-        <option value="">Todas las secciones</option>
-        {% for section in section_options %}
-        <option value="{{ section }}" {% if filters.section_code == section %}selected{% endif %}>
-          {{ section }}
-        </option>
-        {% endfor %}
-      </select>
+        <select name="section_code">
+          <option value="">Todas las secciones</option>
+          {% for section in section_options %}
+          <option value="{{ section }}" {% if filters.section_code == section %}selected{% endif %}>
+            {{ section }}
+          </option>
+          {% endfor %}
+        </select>
 
-      <button type="submit">Buscar</button>
-    </form>
+        <button type="submit">Buscar</button>
+      </form>
+      {% if current_user.role.value in ['admin', 'principal', 'teacher'] %}
+      <a href="/students/new" class="secondary-link">+ Nuevo Alumno</a>
+      {% endif %}
+    </div>
   </div>
 
   {% if require_filter %}
@@ -56,6 +66,9 @@
         <th>Institucion</th>
         <th>Grado</th>
         <th>Seccion</th>
+        {% if current_user.role.value in ['admin', 'principal', 'teacher'] %}
+        <th>Acciones</th>
+        {% endif %}
       </tr>
     </thead>
     <tbody>
@@ -66,6 +79,11 @@
         <td>{{ school.name }}</td>
         <td>{{ enrollment.grade_label or "-" }}</td>
         <td>{{ enrollment.section_code or "-" }}</td>
+        {% if current_user.role.value in ['admin', 'principal', 'teacher'] %}
+        <td>
+          <a href="/students/{{ student.id }}/edit" class="secondary-link">Editar</a>
+        </td>
+        {% endif %}
       </tr>
       {% endfor %}
     </tbody>
@@ -76,8 +94,6 @@
 {% block scripts %}
 <script>
   $(function() {
-    console.log("Select2 funcionando ✅");
-
     $('#school_select').select2({
       placeholder: "Buscar escuela...",
       allowClear: true,

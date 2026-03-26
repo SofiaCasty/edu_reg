@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+{% if request.query_params.get('message') %}
+<div class="alert {% if request.query_params.get('message_type') == 'error' %}alert-error{% endif %}">
+  <p>{{ request.query_params.get('message') }}</p>
+</div>
+{% endif %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>{% if school %}Editar Institución{% else %}Nueva Institución{% endif %}</h2>
+      <p class="muted">{% if school %}Modifica los datos de la institución.{% else %}Agrega una nueva institución al sistema.{% endif %}</p>
+    </div>
+  </div>
+  <form method="post" action="{% if school %}/schools/{{ school.code }}/edit{% else %}/schools{% endif %}" class="crud-form">
+    {% if not school %}
+    <label>Código *
+      <input type="text" name="code" required placeholder="Ej: 10001" />
+    </label>
+    {% endif %}
+    <label>Nombre *
+      <input type="text" name="name" value="{{ school.name if school else '' }}" required placeholder="Nombre de la institución" />
+    </label>
+    <label>Sector
+      <select name="sector">
+        <option value="">Sin sector</option>
+        {% for s in ['Público', 'Privado'] %}
+        <option value="{{ s }}" {% if school and school.sector == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Zona
+      <select name="zone">
+        <option value="">Sin zona</option>
+        {% for z in ['Urbana', 'Rural'] %}
+        <option value="{{ z }}" {% if school and school.zone == z %}selected{% endif %}>{{ z }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Código Departamento
+      <input type="number" name="department_code" value="{{ school.department_code if school and school.department_code else '' }}" placeholder="Código numérico" />
+    </label>
+    <label>Código Municipio
+      <input type="number" name="municipality_code" value="{{ school.municipality_code if school and school.municipality_code else '' }}" placeholder="Código numérico" />
+    </label>
+    <div class="actions-row">
+      <button type="submit">{% if school %}Guardar cambios{% else %}Crear Institución{% endif %}</button>
+      <a href="/schools" class="secondary-link">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
