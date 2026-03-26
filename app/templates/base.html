@@ -3,11 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ title or "Sistema de Gestion Escolar" }}</title>
+    <title>{{ title or "Sistema de Gestión Escolar" }}</title>
+    <meta name="description" content="Plataforma de gestión académica del Ministerio de Educación de El Salvador" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -21,28 +22,48 @@
     <div class="app-shell">
       {% if current_user %}
       <aside class="sidebar">
-        <div>
-          <p class="eyebrow">Antigravity School Suite</p>
-          <h1>Sistema Escolar</h1>
-          <p class="muted">{{ current_user.full_name }}</p>
-          <p class="badge">{{ current_user.role.value }}</p>
+        <div class="sidebar-brand">
+          <div class="brand-icon">🎓</div>
+          <h1>SIGES</h1>
+          <p class="brand-subtitle">Sistema de Gestión Escolar</p>
+        </div>
+        <div class="sidebar-user">
+          <div class="user-avatar">{{ current_user.full_name[0] | upper }}</div>
+          <div>
+            <p class="user-name">{{ current_user.full_name }}</p>
+            <p class="badge">{{ current_user.role.value }}</p>
+          </div>
         </div>
         <nav>
-          <a href="/dashboard" class="{% if request.url.path == '/dashboard' %}active{% endif %}">Dashboard</a>
+          <a href="/dashboard" class="nav-link {% if request.url.path == '/dashboard' %}active{% endif %}">
+            <span class="nav-icon">📊</span> Dashboard
+          </a>
           {% if current_user.role.value in ['admin', 'principal', 'teacher'] %}
-          <a href="/schools" class="{% if request.url.path.startswith('/schools') %}active{% endif %}">Instituciones</a>
+          <a href="/schools" class="nav-link {% if request.url.path.startswith('/schools') %}active{% endif %}">
+            <span class="nav-icon">🏫</span> Instituciones
+          </a>
           {% endif %}
           {% if current_user.role.value in ['admin', 'principal', 'teacher'] %}
-          <a href="/teachers" class="{% if request.url.path.startswith('/teachers') %}active{% endif %}">Maestros</a>
+          <a href="/teachers" class="nav-link {% if request.url.path.startswith('/teachers') %}active{% endif %}">
+            <span class="nav-icon">👩‍🏫</span> Maestros
+          </a>
           {% endif %}
           {% if current_user.role.value in ['admin', 'principal', 'teacher', 'student_tutor'] %}
-          <a href="/students" class="{% if request.url.path.startswith('/students') %}active{% endif %}">Alumnos</a>
+          <a href="/students" class="nav-link {% if request.url.path.startswith('/students') %}active{% endif %}">
+            <span class="nav-icon">👨‍🎓</span> Alumnos
+          </a>
           {% endif %}
-          <a href="/grades" class="{% if request.url.path.startswith('/grades') %}active{% endif %}">Notas</a>
-          <a href="/reports" class="{% if request.url.path.startswith('/reports') %}active{% endif %}">Reportes</a>
+          <a href="/grades" class="nav-link {% if request.url.path.startswith('/grades') %}active{% endif %}">
+            <span class="nav-icon">📝</span> Notas
+          </a>
+          <a href="/reports" class="nav-link {% if request.url.path.startswith('/reports') %}active{% endif %}">
+            <span class="nav-icon">📈</span> Reportes
+          </a>
         </nav>
-        <form method="post" action="/logout">
-          <button type="submit" class="ghost">Cerrar sesion</button>
+        <form method="post" action="/logout" class="sidebar-logout">
+          <button type="submit" class="logout-btn">
+            <span>⏻</span> Cerrar sesión
+          </button>
         </form>
       </aside>
       {% endif %}

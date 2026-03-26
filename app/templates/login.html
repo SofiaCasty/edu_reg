@@ -1,32 +1,41 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="login-card">
-  <div>
-    <p class="eyebrow">Plataforma SSR con FastAPI</p>
-    <h2>Ingreso al sistema</h2>
-    <p class="muted">Usa una cuenta sembrada por el importador para explorar roles y permisos.</p>
+<section class="login-wrapper">
+  <div class="login-hero">
+    <div class="login-hero-content">
+      <div class="hero-badge">🎓</div>
+      <h1>SIGES</h1>
+      <p>Sistema Integrado de<br>Gestión Escolar</p>
+      <div class="hero-divider"></div>
+      <p class="hero-footer">Ministerio de Educación<br>Gobierno de El Salvador</p>
+    </div>
   </div>
-  {% if errors %}
-  <div class="alert">
-    {% for error in errors %}
-    <p>{{ error }}</p>
-    {% endfor %}
-  </div>
-  {% endif %}
-  <form method="post" action="/login" class="stack">
-    <label>Email
-      <input type="email" name="email" value="{{ email or '' }}" placeholder="admin@antigravity.school" required />
-    </label>
-    <label>Contrasena
-      <input type="password" name="password" placeholder="********" required />
-    </label>
-    <button type="submit">Entrar</button>
-  </form>
-  <div class="credentials">
-    <p><strong>Admin:</strong> admin@antigravity.school / Admin#2026</p>
-    <p><strong>Teacher:</strong> teacher.demo@antigravity.school / Teacher123!</p>
-    <p><strong>Principal:</strong> principal.demo@antigravity.school / Director123!</p>
-    <p><strong>Student:</strong> student.demo@antigravity.school / Student123!</p>
+  <div class="login-form-side">
+    <div class="login-card">
+      <div class="login-header">
+        <h2>Bienvenido</h2>
+        <p>Ingresa tus credenciales para acceder al sistema</p>
+      </div>
+      {% if errors %}
+      <div class="alert">
+        {% for error in errors %}
+        <p>{{ error }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <form method="post" action="/login" class="login-form">
+        <label class="form-label">
+          <span>Correo electrónico</span>
+          <input type="email" name="email" value="{{ email or '' }}" placeholder="usuario@edu.local" required />
+        </label>
+        <label class="form-label">
+          <span>Contraseña</span>
+          <input type="password" name="password" placeholder="Ingrese su contraseña" required />
+        </label>
+        <button type="submit" class="login-btn">Iniciar sesión</button>
+      </form>
+      <p class="login-footer-text">Acceso exclusivo para personal autorizado</p>
+    </div>
   </div>
 </section>
 {% endblock %}
