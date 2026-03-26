@@ -13,7 +13,7 @@
 .git
 .gitignore
 .dockerignore
-Dockerfile
+# Dockerfile — needed for Cloud Build
 docker-compose.yml
 docker-compose.dev.yml
 .env
